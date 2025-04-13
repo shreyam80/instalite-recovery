@@ -36,10 +36,10 @@ async function create_tables() {
   );`);
 
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS friends ( \
-    followed INT, \
     follower INT, \
+    following INT, \
     FOREIGN KEY (follower) REFERENCES users(user_id), \
-    FOREIGN KEY (followed) REFERENCES users(user_id) \
+    FOREIGN KEY (following) REFERENCES users(user_id) \
     );')
 
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS posts ( \
