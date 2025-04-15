@@ -1,6 +1,31 @@
 {
+  "name": "final-project",
+  "version": "1.0.0",
+  "description": "[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=18967447&assignment_repo_type=AssignmentRepo) # NETS 2120 Course Project",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "dotenv": "^16.5.0",
-    "mysql2": "^3.14.0"
-  }
+    "express": "^4.21.2",
+    "kafkajs": "^2.2.4",
+    "kafkajs-snappy": "^1.1.0",
+    "mysql2": "^3.14.0",
+    "snappy": "^7.2.2",
+    "uuid": "^11.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upenn-nets-2120/project-instalite-2120-instagram-clone-group.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/upenn-nets-2120/project-instalite-2120-instagram-clone-group/issues"
+  },
+  "homepage": "https://github.com/upenn-nets-2120/project-instalite-2120-instagram-clone-group#readme"
 }
