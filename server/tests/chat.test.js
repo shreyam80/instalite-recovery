@@ -1,6 +1,6 @@
-add user’s
+//add user’s
 
-delete chat
+//delete chat
 
 
 
@@ -118,6 +118,8 @@ test('rejectChatInvite should decline the invite', async () => {
     const res = await rejectChatInvite(chat.chatId, 'user5');
     expect(res.success).toBe(true);
 });
+
+
 
 // ----------------------------------
 // Test: Get chat history
