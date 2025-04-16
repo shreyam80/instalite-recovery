@@ -4,8 +4,7 @@
   "description": "Backend for image upload and matching module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "aws-sdk": "^2.1692.0",

@@ -3,6 +3,7 @@ import pkg from 'kafkajs';
 const { Kafka, CompressionTypes, CompressionCodecs } = pkg;
 import SnappyCodec from 'kafkajs-snappy';
 CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
+import { saveKafkaPost } from "./server/kafka/kafka_db.js";
 
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -64,7 +65,7 @@ const run = async () => {
                 console.log(`📥 [${topic}]`, postToSave);
 
                 // TODO: Replace this with actual DB logic
-                // await insertPostToDB(postToSave);
+                //await saveKafkaPost(postToSave);
 
             } catch (err) {
                 console.error("⚠️ Error parsing Kafka message:", err);
@@ -74,7 +75,6 @@ const run = async () => {
 };
 
 run().catch(console.error);
-
 app.listen(config.port, () => {
     console.log(`🌍 App is listening on port ${config.port}`);
 });
