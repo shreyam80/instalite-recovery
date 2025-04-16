@@ -426,11 +426,22 @@ test('linkActorToUser links valid actor from top 5 matches with custom profile i
 // ----------------------------------
 // Test: getTopHashtags
 // ----------------------------------
-// Retrieves the top 10 hashtags and checks that the returned value is an array with at most 10 items.
-test('getTopHashtags returns an array of up to 10 hashtags', async () => {
+// Retrieves the top 10 hashtags and checks that the returned value is an array 
+// with at most 10 items, sorted from greatest to least by count.
+test('getTopHashtags returns a sorted array of up to 10 hashtags', async () => {
     const tags = await getTopHashtags();
+
+    // Ensure it's an array with up to 10 elements
     expect(Array.isArray(tags)).toBe(true);
     expect(tags.length).toBeLessThanOrEqual(10);
-});
 
-// this shoudl be sorted
+    // Ensure each item has a 'count' property that is a number
+    for (const tag of tags) {
+        expect(typeof tag.count).toBe('number');
+    }
+
+    // Ensure the array is sorted in descending order by count
+    for (let i = 0; i < tags.length - 1; i++) {
+        expect(tags[i].count).toBeGreaterThanOrEqual(tags[i + 1].count);
+    }
+});
