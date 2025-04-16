@@ -21,14 +21,15 @@ class RelationalDB {
     dbconfig = null;
 
     constructor() {
-        this.dbconfig = config.database;
-        if (process.env.DATABASE_USER) {
-            this.dbconfig.host = process.env.DATABASE_SERVER;
-            this.dbconfig.database = process.env.DATABASE_NAME;
-            this.dbconfig.user = process.env.DATABASE_USER;
-            this.dbconfig.password = process.env.DATABASE_PASSWORD;
-        }
-    }
+        this.dbconfig = {}; // must be initialized
+    
+        this.dbconfig.host = process.env.DATABASE_SERVER;
+        this.dbconfig.user = process.env.DATABASE_USER;
+        this.dbconfig.password = process.env.DATABASE_PASSWORD;
+        this.dbconfig.database = process.env.DATABASE_NAME;
+    
+        this.connection = mysql.createConnection(this.dbconfig);
+      }
 
     setInfo(dbserver, dbname, dbuser, dbpassword) {
         this.dbconfig = config.database;
