@@ -1,9 +1,7 @@
 {
-    "database": {
-      "host": "localhost",
-      "port": "3306",
-      "database": "instagram_clone_db_1"
-    },
-    "serverPort": "8080"
-  }
+  "groupId": "upennies",
+  "bootstrapServers": ["localhost:9092"],
+  "topics": ["Bluesky-Kafka","FederatedPosts"],
+  "port": 4567
+}
   
