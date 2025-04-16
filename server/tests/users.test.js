@@ -88,7 +88,7 @@ import {
     getTopActorMatches,
     linkActorToUser,
     getTopHashtags
-} from '../routes/register_routes.js';
+} from '../../users.js';
 
 // ----------------------------------
 // Test: createUser - registration
