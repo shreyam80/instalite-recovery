@@ -57,7 +57,7 @@ import {
       hashtags: ['#intro']
     };
     await createUser(user);
-    const auth = await authenticateUser('postuser', 'postpass123');
+    const auth = await authenticateUser({ login: 'postuser', password: 'postpass123' });
     testUserId = auth.userId;
   });
   

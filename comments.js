@@ -1,5 +1,4 @@
-import { get_db_connection } from "../models/rdbms.js";
-
+import { get_db_connection } from './server/models/rdbms.js';
 const db = get_db_connection();
 
 export async function addComment(postId, userId, text, parentCommentId = null) {
@@ -41,7 +40,7 @@ export async function unlikeComment(commentId, userId) {
     if (rows.length === 0) return { error: "Comment not found" };
 
     const currentLikes = rows[0].likes ?? 0;
-    const newLikes = Math.max(currentLikes - 1, 0); // Compared against zero such that zero is the minimum number of likes
+    const newLikes = Math.max(currentLikes - 1, 0);
 
     await db.send_sql("UPDATE comments SET likes = ? WHERE comment_id = ?", [
       newLikes,
@@ -57,15 +56,20 @@ export async function unlikeComment(commentId, userId) {
 
 export async function deleteComment(commentId, userId) {
   try {
-    const [result] = await db.send_sql(
-      "DELETE FROM comments WHERE comment_id = ? AND user_id = ?",
-      [commentId, userId]
-    );
+    const [rows] = await db.send_sql(`
+      SELECT c.user_id AS comment_owner, p.author AS post_owner
+      FROM comments c
+      JOIN posts p ON c.post_id = p.post_id
+      WHERE c.comment_id = ?`, [commentId]);
 
-    if (result.affectedRows === 0) {
-      return { error: "Unauthorized or comment not found" };
+    if (rows.length === 0) return { error: "Comment not found" };
+    const { comment_owner, post_owner } = rows[0];
+
+    if (userId !== comment_owner && userId !== post_owner) {
+      return { error: "Unauthorized" };
     }
 
+    await db.send_sql("DELETE FROM comments WHERE comment_id = ?", [commentId]);
     return { success: true };
   } catch (err) {
     console.error("deleteComment error:", err);

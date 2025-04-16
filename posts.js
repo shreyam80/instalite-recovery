@@ -1,4 +1,4 @@
-import { get_db_connection } from "../models/rdbms.js";
+import { get_db_connection } from './server/models/rdbms.js';
 
 const db = get_db_connection();
 
@@ -41,16 +41,11 @@ export async function deletePost(postId, userId) {
 
 export async function likePost(postId, userId) {
   try {
-    const [post] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
-    if (post.length === 0) return { error: "Post not found" };
-
-    const likes = post[0].likes ? JSON.parse(post[0].likes) : [];
-    if (!likes.includes(userId)) likes.push(userId);
-
-    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [
-      JSON.stringify(likes),
-      postId,
-    ]);
+    const [rows] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
+    if (rows.length === 0) return { error: "Post not found" };
+    let currentLikes = rows[0].likes || 0;
+    currentLikes++;
+    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [currentLikes, postId]);
 
     return { success: true };
   } catch (err) {
@@ -61,16 +56,15 @@ export async function likePost(postId, userId) {
 
 export async function unlikePost(postId, userId) {
   try {
-    const [post] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
-    if (post.length === 0) return { error: "Post not found" };
+    const [rows] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
+    if (rows.length === 0) return { error: "Post not found" };
 
-    let likes = post[0].likes ? JSON.parse(post[0].likes) : [];
-    likes = likes.filter((id) => id !== userId);
+    let currentLikes = rows[0].likes || 0;
+    if (currentLikes > 0) {
+      currentLikes--;
+    }
 
-    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [
-      JSON.stringify(likes),
-      postId,
-    ]);
+    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [currentLikes, postId]);
 
     return { success: true };
   } catch (err) {
@@ -96,9 +90,6 @@ export async function linkPostToHashtags(postId, hashtags) {
   }
 }
 
-/**
- * This function is not ranked yet, I'm only tacking databases so I'm checking whether the posts are retrieved or not
- */
 export async function getPostsForUser(userId) {
   try {
     const [friends] = await db.send_sql(
@@ -125,7 +116,7 @@ export async function getPostsForUser(userId) {
       imageUrl: post.image_url,
       author: post.author_username,
       profileImage: post.profile_image_url,
-      likeCount: post.likes ? JSON.parse(post.likes).length : 0,
+      likeCount: post.likes || 0,
     }));
   } catch (err) {
     console.error("getPostsForUser error:", err);

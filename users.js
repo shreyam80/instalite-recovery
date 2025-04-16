@@ -1,41 +1,47 @@
-import { get_db_connection } from "../models/rdbms.js";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-const db = get_db_connection();
+import { get_db_connection } from './server/models/rdbms.js';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+
+const dbaccess = get_db_connection().connect();
 const SECRET_KEY = process.env.JWT_SECRET || "changeme";
 
-export async function createUser({ login, password, firstName, lastName, email, affiliation, birthday, hashtags }) {
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      await db.send_sql(
-        `INSERT INTO users 
-         (username, hashed_password, email, first_name, last_name, affiliation, hashtag_text) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [login, hashedPassword, email, firstName, lastName, affiliation, JSON.stringify(hashtags)]
-      );
-  
-      return { success: true };
-    } catch (err) {
-      console.error("createUser error:", err);
-      return { error: "User creation failed" };
-    }
+export async function createUser({ login, password, firstName, lastName, email, affiliation, hashtags }) {
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const db = await dbaccess;
+
+    const [result] = await db.send_sql(
+      `INSERT INTO users 
+        (username, hashed_password, email, first_name, last_name, affiliation, hashtag_text) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [login, hashedPassword, email, firstName, lastName, affiliation, JSON.stringify(hashtags)]
+    );
+
+    return { success: true, userId: result.insertId };
+  } catch (err) {
+    console.error("createUser error:", err);
+    return { error: "User creation failed" };
+  }
 }
 
 export async function authenticateUser({ login, password }) {
   try {
+    const db = await dbaccess;
     const [users] = await db.send_sql(
       "SELECT user_id, hashed_password FROM users WHERE username = ? OR email = ?",
       [login, login]
     );
+
     if (users.length === 0) return { error: "User not found" };
 
     const user = users[0];
     const match = await bcrypt.compare(password, user.hashed_password);
     if (!match) return { error: "Invalid password" };
 
+    await db.send_sql("UPDATE users SET is_online = TRUE WHERE user_id = ?", [user.user_id]);
+
     const token = jwt.sign({ userId: user.user_id }, SECRET_KEY, { expiresIn: "1h" });
-    return { userId: user.user_id, token };
+    return { success: true, userId: user.user_id, token, is_online: true };
   } catch (err) {
     console.error("authenticateUser error:", err);
     return { error: "Authentication failed" };
@@ -44,9 +50,12 @@ export async function authenticateUser({ login, password }) {
 
 export async function getUserById(userId) {
   try {
-    const [users] = await db.send_sql("SELECT * FROM users WHERE user_id = ?", [userId]);
-    if (users.length === 0) return null;
-    return users[0];
+    const db = await dbaccess;
+    const [users] = await db.send_sql(
+        "SELECT *, CAST(JSON_EXTRACT(hashtag_text, '$') AS CHAR) AS hashtag_text FROM users WHERE user_id = ?",
+        [userId]
+      );      
+    return users.length > 0 ? users[0] : null;
   } catch (err) {
     console.error("getUserById error:", err);
     return null;
@@ -55,6 +64,7 @@ export async function getUserById(userId) {
 
 export async function updateUserEmail(userId, newEmail) {
   try {
+    const db = await dbaccess;
     await db.send_sql("UPDATE users SET email = ? WHERE user_id = ?", [newEmail, userId]);
     return { success: true };
   } catch (err) {
@@ -63,22 +73,24 @@ export async function updateUserEmail(userId, newEmail) {
   }
 }
 
-export async function updateUserPassword(userId, newPassword) {
+export async function updateUserPassword(userId, newHashedPassword) {
   try {
-    await db.send_sql("UPDATE users SET hashed_password = ? WHERE user_id = ?", [newPassword, userId]);
+    const db = await dbaccess;
+    await db.send_sql("UPDATE users SET hashed_password = ? WHERE user_id = ?", [newHashedPassword, userId]);
     return { success: true };
   } catch (err) {
     console.error("updateUserPassword error:", err);
     return { error: "Failed to update password" };
   }
 }
-
 export async function updateHashtags(userId, hashtagList) {
   try {
-    await db.send_sql("UPDATE users SET hashtag_text = ? WHERE user_id = ?", [
-      JSON.stringify(hashtagList),
-      userId,
-    ]);
+    console.log("updateHashtags received hashtagList:", hashtagList);
+    const db = await dbaccess;
+    await db.send_sql(
+      "UPDATE users SET hashtag_text = CAST(? AS JSON) WHERE user_id = ?",
+      [JSON.stringify(hashtagList), userId]
+    );
     return { success: true };
   } catch (err) {
     console.error("updateHashtags error:", err);
@@ -88,6 +100,7 @@ export async function updateHashtags(userId, hashtagList) {
 
 export async function setUserOnlineStatus(userId, isOnline) {
   try {
+    const db = await dbaccess;
     await db.send_sql("UPDATE users SET is_online = ? WHERE user_id = ?", [isOnline, userId]);
     return { success: true };
   } catch (err) {
@@ -96,12 +109,17 @@ export async function setUserOnlineStatus(userId, isOnline) {
   }
 }
 
-export async function getTopHashtags() {
+export async function getTopHashtags(userId) {
   try {
-    const [rows] = await db.send_sql("SELECT hashtag FROM hashtags ORDER BY count DESC LIMIT 10");
-    return rows.map((row) => row.hashtag);
+    const db = await dbaccess;
+    const [rows] = await db.send_sql(
+      "SELECT JSON_UNQUOTE(JSON_EXTRACT(hashtag_text, '$')) AS hashtag_text FROM users WHERE user_id = ?",
+      [userId]
+    );    
+    if (rows.length === 0) return [];
+    return JSON.parse(rows[0].hashtag_text || "[]");
   } catch (err) {
     console.error("getTopHashtags error:", err);
-    return { error: "Failed to retrieve top hashtags" };
+    return [];
   }
 }

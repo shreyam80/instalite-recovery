@@ -42,7 +42,7 @@ async function create_tables() {
     image_url TEXT, \
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     comment_id INT, \
-    likes TEXT, \
+    likes INT, \
     is_external BOOLEAN DEFAULT FALSE, \
     external_site_id VARCHAR(255), \
     file_key VARCHAR(255), \
@@ -54,16 +54,6 @@ async function create_tables() {
     hashtag VARCHAR(255) PRIMARY KEY, \
     count INT DEFAULT 0 \
   );");
-
-  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS posts ( \
-    post_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
-    parent_post INT, \
-    title VARCHAR(255), \
-    content VARCHAR(255), \
-    author_id INT, \
-    FOREIGN KEY (parent_post) REFERENCES posts(post_id), \
-    FOREIGN KEY (author_id) REFERENCES users(user_id) \
-    );')
 
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS chat_sessions ( \
     chat_session_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
