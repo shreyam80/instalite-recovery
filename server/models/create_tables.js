@@ -32,6 +32,7 @@ async function create_tables() {
     affiliation VARCHAR(255), \
     profile_image_url TEXT, \
     linked_actor_id VARCHAR(255), \
+    hashtag_text JSON, \
     is_online BOOLEAN DEFAULT FALSE \
   );`);
 
@@ -53,7 +54,13 @@ async function create_tables() {
     is_external BOOLEAN DEFAULT FALSE, \
     external_site_id VARCHAR(255), \
     file_key VARCHAR(255), \
+    hashtag_text JSON, \
     FOREIGN KEY (author) REFERENCES users(user_id) \
+  );");
+
+  await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS hashtags ( \
+    hashtag VARCHAR(255) PRIMARY KEY, \
+    count INT DEFAULT 0 \
   );");
 
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS posts ( \
@@ -65,20 +72,6 @@ async function create_tables() {
     FOREIGN KEY (parent_post) REFERENCES posts(post_id), \
     FOREIGN KEY (author_id) REFERENCES users(user_id) \
     );')
-
-  await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS post_hashtags ( \
-    post_id INT, \
-    hashtag VARCHAR(255), \
-    PRIMARY KEY (post_id, hashtag), \
-    FOREIGN KEY (post_id) REFERENCES posts(post_id) \
-  );");
-
-  await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS user_hashtags ( \
-    user_id INT, \
-    hashtag VARCHAR(255), \
-    PRIMARY KEY (user_id, hashtag), \
-    FOREIGN KEY (user_id) REFERENCES users(user_id) \
-  );");
 
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS chat_sessions ( \
     chat_session_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
