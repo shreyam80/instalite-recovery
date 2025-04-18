@@ -4,6 +4,7 @@
   "description": "Backend for image upload and matching module",
   "type": "module",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "test": "jest"
