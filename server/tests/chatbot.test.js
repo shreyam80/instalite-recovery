@@ -41,7 +41,7 @@ import {
   topK,
   updateEmbeddings,
   getAnswer
-} from '../routes/chatbot_integration.js';
+} from '../../chatbot/chatbot.js';
 
 // ----------------------------------
 // Test: queryMovieData

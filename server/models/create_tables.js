@@ -1,6 +1,4 @@
 import { get_db_connection, RelationalDB } from '../models/rdbms.js';
-
-// Database connection setup
 const dbaccess = get_db_connection();
 
 function sendQueryOrCommand(db, query, params = []) {
@@ -16,12 +14,6 @@ function sendQueryOrCommand(db, query, params = []) {
   }
 
 async function create_tables() {
-
-  /**
-   * These should exist from HW2 and 3
-   */
-
-  // Note here that birth/death year should really be int but have often been put as string
   await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS users (
     user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
     username VARCHAR(255) UNIQUE, \
@@ -50,7 +42,7 @@ async function create_tables() {
     image_url TEXT, \
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     comment_id INT, \
-    likes TEXT, \
+    likes INT, \
     is_external BOOLEAN DEFAULT FALSE, \
     external_site_id VARCHAR(255), \
     file_key VARCHAR(255), \
@@ -86,7 +78,7 @@ async function create_tables() {
     text_content TEXT, \
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     parent_comment_id INT, \
-    likes TEXT, \
+    likes INT, \
     FOREIGN KEY (post_id) REFERENCES posts(post_id), \
     FOREIGN KEY (user_id) REFERENCES users(user_id), \
     FOREIGN KEY (parent_comment_id) REFERENCES comments(comment_id) \
