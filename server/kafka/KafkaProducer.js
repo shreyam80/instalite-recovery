@@ -25,7 +25,7 @@ const run = async () => {
     messages: [{ value: JSON.stringify(message) }]
   });
 
-  console.log("Sent message to FederatedPosts");
+  console.log("📤 Sent message to FederatedPosts");
   await producer.disconnect();
 };
 
