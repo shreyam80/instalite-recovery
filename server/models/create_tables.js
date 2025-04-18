@@ -63,16 +63,6 @@ async function create_tables() {
     count INT DEFAULT 0 \
   );");
 
-  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS posts ( \
-    post_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
-    parent_post INT, \
-    title VARCHAR(255), \
-    content VARCHAR(255), \
-    author_id INT, \
-    FOREIGN KEY (parent_post) REFERENCES posts(post_id), \
-    FOREIGN KEY (author_id) REFERENCES users(user_id) \
-    );')
-
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS chat_sessions ( \
     chat_session_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
     creation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
@@ -102,7 +92,19 @@ async function create_tables() {
     FOREIGN KEY (parent_comment_id) REFERENCES comments(comment_id) \
   );");
 
-    return null;
+  await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS chat_invites (
+    invite_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    sender_user_id INT,
+    recipient_user_id INT,
+    chat_session_id INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_user_id) REFERENCES users(user_id),
+    FOREIGN KEY (recipient_user_id) REFERENCES users(user_id),
+    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions(chat_session_id)
+  );`);
+  
+
+  return null;
 }
 
 console.log('Creating tables');

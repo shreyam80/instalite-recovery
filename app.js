@@ -67,7 +67,7 @@ const run = async () => {
                 // await insertPostToDB(postToSave);
 
             } catch (err) {
-                console.error("⚠️ Error parsing Kafka message:", err);
+                console.error("Error parsing Kafka message:", err);
             }
         }
     });
@@ -76,5 +76,5 @@ const run = async () => {
 run().catch(console.error);
 
 app.listen(config.port, () => {
-    console.log(`🌍 App is listening on port ${config.port}`);
+    console.log(`App is listening on port ${config.port}`);
 });
