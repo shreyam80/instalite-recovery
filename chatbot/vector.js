@@ -1,6 +1,6 @@
-import { Document } from "langchain/document";
+import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 // using a retriever as was done in Lecture 17
@@ -27,6 +27,6 @@ export async function retrieveRelevantDocs(query) {
   if (!retriever) {
     throw new Error("Retriever not initialized. Call createRetriever() first.");
   }
-  return await retriever.getRelevantDocuments(query, 5); 
+  return await retriever.getRelevantDocuments(query); 
   /*using k=5 as the image topK algorithm in the app gives out the top 5 actor matches*/
 }
