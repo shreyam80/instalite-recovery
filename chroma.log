@@ -44,3 +44,27 @@
 [32mINFO[0m:     [16-04-2025 11:24:00] Waiting for application startup.
 [32mINFO[0m:     [16-04-2025 11:24:00] Application startup complete.
 [32mINFO[0m:     [16-04-2025 11:24:00] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[33mWARNING[0m:  [19-04-2025 23:26:56] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [19-04-2025 23:26:57] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component System
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component SqliteDB
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component Posthog
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component LocalExecutor
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component SegmentAPI
+[36mDEBUG[0m:    [19-04-2025 23:26:57] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [19-04-2025 23:26:58] Started server process [[36m92114[0m]
+[32mINFO[0m:     [19-04-2025 23:26:58] Waiting for application startup.
+[32mINFO[0m:     [19-04-2025 23:26:58] Application startup complete.
+[32mINFO[0m:     [19-04-2025 23:26:58] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [19-04-2025 23:27:03] 127.0.0.1:53856 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [19-04-2025 23:27:04] 127.0.0.1:53856 - "GET /favicon.ico HTTP/1.1" 404
+[32mINFO[0m:     [19-04-2025 23:34:08] 127.0.0.1:44912 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [19-04-2025 23:34:08] 127.0.0.1:44914 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [19-04-2025 23:34:08] 127.0.0.1:44912 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [19-04-2025 23:34:08] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [19-04-2025 23:34:08] 127.0.0.1:44914 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/upsert HTTP/1.1" 200
+[32mINFO[0m:     [19-04-2025 23:34:09] 127.0.0.1:44912 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/query?limit=4 HTTP/1.1" 200

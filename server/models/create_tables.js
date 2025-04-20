@@ -14,19 +14,40 @@ function sendQueryOrCommand(db, query, params = []) {
   }
 
 async function create_tables() {
-  await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS users (
-    user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
+
+await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 0;");
+
+await dbaccess.create_tables("DROP TABLE IF EXISTS chat_invites;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS chat_messages;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS chat_sessions;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS comments;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS posts;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS friends;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS hashtags;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS users;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS principals;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS titles;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS names;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS post_likes;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS comment_likes;");
+
+
+await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
+
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS users ( \
+    user_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
     username VARCHAR(255) UNIQUE, \
     hashed_password VARCHAR(255), \
     email VARCHAR(255) UNIQUE, \
     first_name VARCHAR(255), \
     last_name VARCHAR(255), \
+    birthday DATE, \
     affiliation VARCHAR(255), \
     profile_image_url TEXT, \
     linked_actor_id VARCHAR(255), \
     hashtag_text JSON, \
     is_online BOOLEAN DEFAULT FALSE \
-  );`);
+  );');
 
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS friends ( \
     follower INT, \
@@ -42,7 +63,6 @@ async function create_tables() {
     image_url TEXT, \
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     comment_id INT, \
-    likes INT, \
     is_external BOOLEAN DEFAULT FALSE, \
     external_site_id VARCHAR(255), \
     file_key VARCHAR(255), \
@@ -78,24 +98,69 @@ async function create_tables() {
     text_content TEXT, \
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
     parent_comment_id INT, \
-    likes INT, \
     FOREIGN KEY (post_id) REFERENCES posts(post_id), \
     FOREIGN KEY (user_id) REFERENCES users(user_id), \
     FOREIGN KEY (parent_comment_id) REFERENCES comments(comment_id) \
   );");
 
-  await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS chat_invites (
-    invite_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    sender_user_id INT,
-    recipient_user_id INT,
-    chat_session_id INT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_user_id) REFERENCES users(user_id),
-    FOREIGN KEY (recipient_user_id) REFERENCES users(user_id),
-    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions(chat_session_id)
-  );`);
-  
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS chat_invites ( \
+    invite_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
+    sender_user_id INT, \
+    recipient_user_id INT, \
+    chat_session_id INT, \
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
+    FOREIGN KEY (sender_user_id) REFERENCES users(user_id), \
+    FOREIGN KEY (recipient_user_id) REFERENCES users(user_id), \
+    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions(chat_session_id) \
+  );');
 
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS names ( \
+    nconst VARCHAR(255) UNIQUE PRIMARY KEY, \
+    primaryName VARCHAR(255), \
+    birthYear VARCHAR(4), \
+    deathYear VARCHAR(4) \
+    );');
+  
+    await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS titles ( \
+      tconst VARCHAR(255) PRIMARY KEY, \
+      titleType VARCHAR(255), \
+      primaryTitle VARCHAR(255), \
+      originalTitle VARCHAR(255), \
+      startYear INT, \
+      endYear INT, \
+      runtimeMinutes INT \
+    );');    
+
+    await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS principals (\
+      tconst VARCHAR(255) NOT NULL, \
+      ordering INT, \
+      nconst VARCHAR(255) NOT NULL, \
+      category VARCHAR(255), \
+      job VARCHAR(255), \
+      characters VARCHAR(255), \
+      PRIMARY KEY (tconst, nconst), \
+      FOREIGN KEY (tconst) REFERENCES titles(tconst), \
+      FOREIGN KEY (nconst) REFERENCES names(nconst) \
+    );');    
+  
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS post_likes ( \
+      post_id INT, \
+      user_id INT, \
+      count INT,\
+      PRIMARY KEY (post_id, user_id), \
+      FOREIGN KEY (post_id) REFERENCES posts(post_id), \
+      FOREIGN KEY (user_id) REFERENCES users(user_id) \);');
+  
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS comment_likes (\
+      comment_id INT, \
+      user_id INT, \
+      count INT,\
+      PRIMARY KEY (comment_id, user_id), \
+      FOREIGN KEY (comment_id) REFERENCES comments(comment_id), \
+      FOREIGN KEY (user_id) REFERENCES users(user_id) \
+    );'
+  );
+  
   return null;
 }
 
@@ -117,4 +182,3 @@ create_populate().then(() => {
 ).finally(() => {
   process.exit(0);
 });
-

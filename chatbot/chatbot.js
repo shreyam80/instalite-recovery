@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { retrieveRelevantDocs, createRetriever } from "./vector.js";
+import { retrieveRelevantDocs, createRetrieverFromDatabase } from "./vector.js";
 
 const template = `
 Answer the question based on the following context:
@@ -41,12 +41,10 @@ export async function callChatbot(query) {
   }
 }
 
-const blurbs = [
-  "Ryan Gosling is a Canadian actor known for The Notebook, Drive, La La Land, and Barbie.",
-  "Margot Robbie starred in Barbie, The Wolf of Wall Street, and Suicide Squad.",
-  "Christopher Nolan directed Inception and Interstellar."
-];
+async function testChatbot() {
+  await createRetrieverFromDatabase();
+  const answer = await callChatbot("Who directed Cinderella?");
+  console.log("Answer:", answer);
+}
 
-await createRetriever(blurbs);
-const answer = await callChatbot("Who was in Barbie?");
-console.log("Answer:", answer);
+testChatbot();

@@ -83,7 +83,7 @@ export async function getCommentsForPost(postId) {
       `SELECT comment_id, user_id, text_content, timestamp, parent_comment_id, likes
        FROM comments
        WHERE post_id = ?
-       ORDER BY likes DESC`,
+       ORDER BY timestamp DESC`,
       [postId]
     );
 
