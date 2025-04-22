@@ -41,10 +41,10 @@ export async function callChatbot(query) {
   }
 }
 
-async function testChatbot() {
+/*async function testChatbot() {
   await createRetrieverFromDatabase();
   const answer = await callChatbot("Who directed Cinderella?");
   console.log("Answer:", answer);
 }
 
-testChatbot();
+testChatbot();*/

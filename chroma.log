@@ -68,3 +68,9 @@
 [36mDEBUG[0m:    [19-04-2025 23:34:08] Starting component PersistentLocalHnswSegment
 [32mINFO[0m:     [19-04-2025 23:34:08] 127.0.0.1:44914 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/upsert HTTP/1.1" 200
 [32mINFO[0m:     [19-04-2025 23:34:09] 127.0.0.1:44912 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/query?limit=4 HTTP/1.1" 200
+[32mINFO[0m:     [20-04-2025 01:03:25] 127.0.0.1:41284 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [20-04-2025 01:03:25] 127.0.0.1:41288 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [20-04-2025 01:03:25] Collection actor_movie_roles already exists, returning existing collection.
+[32mINFO[0m:     [20-04-2025 01:03:25] 127.0.0.1:41284 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [20-04-2025 01:03:26] 127.0.0.1:41288 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/upsert HTTP/1.1" 200
+[32mINFO[0m:     [20-04-2025 01:03:27] 127.0.0.1:41284 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/query?limit=4 HTTP/1.1" 200
