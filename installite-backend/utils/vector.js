@@ -1,47 +1,56 @@
 // utils/vector.js
-const axios = require('axios');
-require('dotenv').config();
+import { ChromaClient } from 'chromadb'; // must be installed via npm
+import dotenv from 'dotenv';
+dotenv.config();
 
-const VECTOR_DB_ENDPOINT = process.env.CHROMADB_ENDPOINT || 'http://localhost:8000';
+const client = new ChromaClient({ path: process.env.CHROMA_URL || 'http://localhost:8000' });
+const COLLECTION_NAME = 'users';
 
-/**
- * Stores the user's embedding vector in the vector database.
- * @param {string} userId - The user's identifier.
- * @param {Array<number>} embedding - The image embedding vector.
- * @returns {Promise<object>} - The response from the vector DB.
- */
-async function storeUserEmbedding(userId, embedding) {
+let collection = null;
+
+export async function ensureCollectionExists() {
+  if (collection) return collection;
+
   try {
-    const response = await axios.post(`${VECTOR_DB_ENDPOINT}/embeddings`, {
-      userId,
-      embedding
+    // Try to get existing collection
+    collection = await client.getCollection({ name: COLLECTION_NAME });
+    console.log(`ℹ️ Reusing existing collection "${COLLECTION_NAME}"`);
+  } catch (err) {
+    // If not found, create it
+    console.log(`⚠️ Collection "${COLLECTION_NAME}" not found, creating it...`);
+    collection = await client.createCollection({ name: COLLECTION_NAME });
+    console.log(`✅ Created collection "${COLLECTION_NAME}"`);
+  }
+
+  return collection;
+}
+
+export async function storeUserEmbedding(userId, embedding) {
+  const coll = await ensureCollectionExists();
+  try {
+    await coll.add({
+      ids: [userId],
+      embeddings: [embedding],
     });
-    console.log(`Stored embedding for user ${userId}`);
-    return response.data;
+    console.log(`✅ Stored embedding for user ${userId}`);
   } catch (error) {
-    console.error("Error storing embedding in vector DB:", error.message);
+    console.error("❌ Error storing embedding:", error.message);
     throw error;
   }
 }
 
-/**
- * Retrieves the top 5 actor matches by performing a similarity search.
- * @param {Array<number>} embedding - The embedding vector for comparison.
- * @returns {Promise<Array<object>>} - An array of top matching actor objects.
- */
-async function getTopActorMatches(embedding) {
+export async function getTopActorMatches(embedding) {
+  const coll = await ensureCollectionExists();
   try {
-    const response = await axios.post(`${VECTOR_DB_ENDPOINT}/search`, {
-      embedding,
-      topK: 5,
-      metric: 'cosine'
+    const results = await coll.query({
+      queryEmbeddings: [embedding],
+      nResults: 5,
+      include: ['distances', 'metadatas', 'documents', 'embeddings'] // clarify response
     });
-    console.log("Retrieved top actor matches from the vector DB.");
-    return response.data.matches;
+    console.log(`✅ Retrieved top actor matches`);
+    return results;
   } catch (error) {
-    console.error("Error retrieving actor matches from the vector DB:", error.message);
+    console.error("❌ Error querying embedding:", error.message);
     throw error;
   }
 }
-
-module.exports = { storeUserEmbedding, getTopActorMatches };

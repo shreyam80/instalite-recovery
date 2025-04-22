@@ -1,15 +1,25 @@
-// index.js
-require('dotenv').config();
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import 'dotenv/config';
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Import utility modules
-const { s3 } = require('./utils/aws');
-const { generateEmbedding } = require('./utils/embeddings');
-const { storeUserEmbedding, getTopActorMatches } = require('./utils/vector');
-const { updateUserRecord, createStatusPost } = require('./utils/db');
+// Utilities
+import { s3 } from './utils/aws.js';
+import { generateEmbedding } from './utils/embeddings.js';
+import { storeUserEmbedding, getTopActorMatches } from './utils/vector.js';
+import { updateUserRecord, createStatusPost } from './utils/db.js';
+
+console.log("→ Using S3 bucket:", process.env.S3_BUCKET);
+if (!process.env.S3_BUCKET) {
+  console.error("❌ Missing S3_BUCKET env var—set that in your .env!");
+  process.exit(1);
+}
+
+// __dirname workaround for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -22,13 +32,8 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Multer setup for file upload
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  }
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
@@ -36,52 +41,53 @@ const upload = multer({ storage });
 app.post('/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
   try {
     const userId = req.body.userId;
-    if (!userId) return res.status(400).json({ error: "Missing userId in request body" });
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     const file = req.file;
-    if (!file) return res.status(400).json({ error: "No file uploaded" });
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
-    // Generate the image embedding (simulate or integrate your model here)
+    // 1) generate the embedding
     const embedding = await generateEmbedding(file.path);
 
-    // Upload image to AWS S3
-    const fileExtension = path.extname(file.originalname);
-    const s3Key = `profile_photos/${userId}-${Date.now()}${fileExtension}`;
+    // 2) upload to S3
+    const ext = path.extname(file.originalname);
+    const bucketName = process.env.S3_BUCKET;
+    const s3Key = `profile_photos/${userId}-${Date.now()}${ext}`;
     const fileStream = fs.createReadStream(file.path);
-
     const s3Params = {
-      Bucket: process.env.S3_BUCKET,
+      Bucket: bucketName,
       Key: s3Key,
       Body: fileStream,
-      ACL: 'public-read',
-      ContentType: file.mimetype
+      ContentType: file.mimetype,
     };
+    await s3.upload(s3Params).promise();
 
-    const s3Response = await s3.upload(s3Params).promise();
-    const imageUrl = s3Response.Location;
-    console.log('Image uploaded to S3:', imageUrl);
+    // ——————————————
+    // ** INSERT THIS RIGHT HERE **
+    // build your own URL (no bucket policy / CORS changes needed)
+    const imageUrl = await new Promise((resolve, reject) =>
+      s3.getSignedUrl('getObject',
+        { Bucket: process.env.S3_BUCKET, Key: s3Key, Expires: 3600 },
+        (err, url) => err ? reject(err) : resolve(url)
+      )
+    );
+    console.log('Signed URL for download:', imageUrl);
+    // ——————————————
 
-    // Delete temporary file
+    // 3) clean up local file
     fs.unlinkSync(file.path);
 
-    // Update the user's record with the new image URL
+    // 4) persist in your “DB”
     await updateUserRecord(userId, { profileImageUrl: imageUrl });
-
-    // Store the embedding in your vector DB (ChromaDB)
     await storeUserEmbedding(userId, embedding);
 
-    // Query vector DB for the top 5 actor matches
-    const topActors = await getTopActorMatches(embedding);
+    // 5) similarity search
+    const actorMatches = await getTopActorMatches(embedding);
 
-    // Return the image URL and top actor matches to the frontend
-    res.json({
-      success: true,
-      imageUrl,
-      actorMatches: topActors
-    });
-  } catch (error) {
-    console.error("Error in /uploadProfileImage:", error);
-    res.status(500).json({ error: "Image upload failed" });
+    return res.json({ success: true, imageUrl, actorMatches });
+  } catch (err) {
+    console.error('Error in /uploadProfileImage:', err);
+    return res.status(500).json({ error: 'Upload failed' });
   }
 });
 
@@ -89,23 +95,17 @@ app.post('/uploadProfileImage', upload.single('profileImage'), async (req, res) 
 app.post('/linkActorToUser', async (req, res) => {
   try {
     const { userId, actorId } = req.body;
-    if (!userId || !actorId) {
-      return res.status(400).json({ error: "Missing userId or actorId" });
-    }
+    if (!userId || !actorId) return res.status(400).json({ error: 'Missing userId or actorId' });
 
-    // Update the user's record to link the selected actor (simulated)
     await updateUserRecord(userId, { linkedActorId: actorId });
-    // Create an automatic status post (simulated)
     await createStatusPost(userId, `User ${userId} is now linked to actor ${actorId}`);
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error in /linkActorToUser:", error);
-    res.status(500).json({ error: "Failed to link actor" });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Error in /linkActorToUser:', err);
+    return res.status(500).json({ error: 'Failed to link actor' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
