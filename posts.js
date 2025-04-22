@@ -102,6 +102,34 @@ export async function linkPostToHashtags(postId, hashtags) {
   }
 }
 
+export async function getPostsByUser(userId) {
+  try {
+	const [posts] = await db.send_sql(
+  	`SELECT p.post_id, p.text_content, p.timestamp, p.image_url, p.likes,
+          		u.username AS author_username, u.profile_image_url
+     	FROM posts p
+     	JOIN users u ON p.author = u.user_id
+    	WHERE p.author = ?
+    	ORDER BY p.timestamp DESC`,
+  	[userId]
+	);
+
+	return posts.map((post) => ({
+  	postId: post.post_id,
+  	text: post.text_content,
+  	timestamp: post.timestamp,
+  	imageUrl: post.image_url,
+  	author: post.author_username,
+  	profileImage: post.profile_image_url,
+  	likeCount: post.likes || 0,
+	}));
+  } catch (err) {
+	console.error("getPostsByUserId error:", err);
+	return { error: "Failed to retrieve user posts" };
+  }
+}
+
+
 export async function getPostsForUser(userId) {
   try {
     const [friends] = await db.send_sql(
