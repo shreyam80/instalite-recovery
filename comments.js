@@ -17,15 +17,19 @@ export async function addComment(postId, userId, text, parentCommentId = null) {
 
 export async function likeComment(commentId, userId) {
   try {
-    const [rows] = await db.send_sql("SELECT likes FROM comments WHERE comment_id = ?", [commentId]);
-    if (rows.length === 0) return { error: "Comment not found" };
+    const [rows] = await db.send_sql(
+      "SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?",
+      [commentId, userId]
+    );
 
-    const currentLikes = rows[0].likes ?? 0;
-
-    await db.send_sql("UPDATE comments SET likes = ? WHERE comment_id = ?", [
-      currentLikes + 1,
-      commentId,
-    ]);
+    if (rows.length > 0) {
+      return { error: "You have already liked this comment" };
+    }
+    await db.send_sql(
+      `INSERT INTO comment_likes (comment_id, user_id)
+       VALUES (?, ?)`,
+      [commentId, userId]
+    );
 
     return { success: true };
   } catch (err) {
@@ -36,16 +40,19 @@ export async function likeComment(commentId, userId) {
 
 export async function unlikeComment(commentId, userId) {
   try {
-    const [rows] = await db.send_sql("SELECT likes FROM comments WHERE comment_id = ?", [commentId]);
-    if (rows.length === 0) return { error: "Comment not found" };
+    const [rows] = await db.send_sql(
+      "SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?",
+      [commentId, userId]
+    );
 
-    const currentLikes = rows[0].likes ?? 0;
-    const newLikes = Math.max(currentLikes - 1, 0);
+    if (rows.length === 0) {
+      return { error: "You have not liked this comment" };
+    }
 
-    await db.send_sql("UPDATE comments SET likes = ? WHERE comment_id = ?", [
-      newLikes,
-      commentId,
-    ]);
+    await db.send_sql(
+      "DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?",
+      [commentId, userId]
+    );
 
     return { success: true };
   } catch (err) {
@@ -56,11 +63,13 @@ export async function unlikeComment(commentId, userId) {
 
 export async function deleteComment(commentId, userId) {
   try {
-    const [rows] = await db.send_sql(`
-      SELECT c.user_id AS comment_owner, p.author AS post_owner
-      FROM comments c
-      JOIN posts p ON c.post_id = p.post_id
-      WHERE c.comment_id = ?`, [commentId]);
+    const [rows] = await db.send_sql(
+      `SELECT c.user_id AS comment_owner, p.author AS post_owner
+       FROM comments c
+       JOIN posts p ON c.post_id = p.post_id
+       WHERE c.comment_id = ?`,
+      [commentId]
+    );
 
     if (rows.length === 0) return { error: "Comment not found" };
     const { comment_owner, post_owner } = rows[0];
@@ -70,6 +79,8 @@ export async function deleteComment(commentId, userId) {
     }
 
     await db.send_sql("DELETE FROM comments WHERE comment_id = ?", [commentId]);
+    await db.send_sql("DELETE FROM comment_likes WHERE comment_id = ?", [commentId]);
+
     return { success: true };
   } catch (err) {
     console.error("deleteComment error:", err);
@@ -80,10 +91,13 @@ export async function deleteComment(commentId, userId) {
 export async function getCommentsForPost(postId) {
   try {
     const [rows] = await db.send_sql(
-      `SELECT comment_id, user_id, text_content, timestamp, parent_comment_id, likes
-       FROM comments
-       WHERE post_id = ?
-       ORDER BY timestamp DESC`,
+      `SELECT c.comment_id, c.user_id, c.text_content, c.timestamp, c.parent_comment_id,
+              COUNT(cl.user_id) AS likes
+         FROM comments c
+         LEFT JOIN comment_likes cl ON c.comment_id = cl.comment_id
+        WHERE c.post_id = ?
+        GROUP BY c.comment_id
+        ORDER BY c.timestamp DESC`,
       [postId]
     );
 

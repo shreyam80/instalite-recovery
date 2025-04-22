@@ -1,6 +1,4 @@
 import { jest } from '@jest/globals';
-
-// 👇 Silence console.error during tests to avoid clutter
 beforeAll(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -9,13 +7,11 @@ afterAll(() => {
   console.error.mockRestore();
 });
 
-// ✅ Mock BOTH exports from vector.js
 jest.unstable_mockModule('../../chatbot/vector.js', () => ({
   retrieveRelevantDocs: jest.fn(),
   createRetrieverFromDatabase: jest.fn()
 }));
 
-// ✅ Mock ChatOpenAI
 jest.unstable_mockModule('@langchain/openai', () => {
   const mockCall = jest.fn().mockResolvedValue({
     text: 'George Albert Smith and Georges Méliès directed Cinderella.'
@@ -27,7 +23,6 @@ jest.unstable_mockModule('@langchain/openai', () => {
   };
 });
 
-// ✅ Declare vars to hold imported modules/mocks
 let callChatbot;
 let retrieveRelevantDocs;
 let ChatOpenAI;
@@ -35,7 +30,7 @@ let ChatOpenAI;
 beforeEach(async () => {
   jest.clearAllMocks();
 
-  // Dynamically import after mocks are applied
+  // Dynamically import after mocks are applied (need both OpenAI, vector.js, and the mock call to be running first)
   const chatbotModule = await import('../../chatbot/chatbot.js');
   callChatbot = chatbotModule.callChatbot;
 

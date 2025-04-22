@@ -31,6 +31,7 @@ export async function deletePost(postId, userId) {
     if (results.affectedRows === 0) {
       return { error: "Post not found or unauthorized" };
     }
+    await db.send_sql("DELETE FROM post_likes WHERE post_id = ?", [postId]);
 
     return { success: true };
   } catch (err) {
@@ -41,11 +42,18 @@ export async function deletePost(postId, userId) {
 
 export async function likePost(postId, userId) {
   try {
-    const [rows] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
-    if (rows.length === 0) return { error: "Post not found" };
-    let currentLikes = rows[0].likes || 0;
-    currentLikes++;
-    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [currentLikes, postId]);
+    const [rows] = await db.send_sql(
+      "SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    if (rows.length > 0) {
+      return { error: "You have already liked this post" };
+    }
+    await db.send_sql(
+      "INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)",
+      [postId, userId]
+    );
 
     return { success: true };
   } catch (err) {
@@ -56,15 +64,19 @@ export async function likePost(postId, userId) {
 
 export async function unlikePost(postId, userId) {
   try {
-    const [rows] = await db.send_sql("SELECT likes FROM posts WHERE post_id = ?", [postId]);
-    if (rows.length === 0) return { error: "Post not found" };
+    const [rows] = await db.send_sql(
+      "SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
 
-    let currentLikes = rows[0].likes || 0;
-    if (currentLikes > 0) {
-      currentLikes--;
+    if (rows.length === 0) {
+      return { error: "You have not liked this post" };
     }
 
-    await db.send_sql("UPDATE posts SET likes = ? WHERE post_id = ?", [currentLikes, postId]);
+    await db.send_sql(
+      "DELETE FROM post_likes WHERE post_id = ? AND user_id = ?",
+      [postId, userId]
+    );
 
     return { success: true };
   } catch (err) {
@@ -100,11 +112,14 @@ export async function getPostsForUser(userId) {
     const userAndFriends = [userId, ...friendIds];
 
     const [posts] = await db.send_sql(
-      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, p.likes, 
-              u.username AS author_username, u.profile_image_url
+      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, 
+              u.username AS author_username, u.profile_image_url,
+              COUNT(pl.user_id) AS likeCount
          FROM posts p
          JOIN users u ON p.author = u.user_id
-        WHERE p.author IN (?) 
+         LEFT JOIN post_likes pl ON p.post_id = pl.post_id
+        WHERE p.author IN (?)
+        GROUP BY p.post_id
         ORDER BY p.timestamp DESC`,
       [userAndFriends]
     );
@@ -116,7 +131,7 @@ export async function getPostsForUser(userId) {
       imageUrl: post.image_url,
       author: post.author_username,
       profileImage: post.profile_image_url,
-      likeCount: post.likes || 0,
+      likeCount: post.likeCount || 0,
     }));
   } catch (err) {
     console.error("getPostsForUser error:", err);
