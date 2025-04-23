@@ -21,4 +21,4 @@ async function createStatusPost(userId, message) {
   return true;
 }
 
-module.exports = { updateUserRecord, createStatusPost };
+export { updateUserRecord, createStatusPost };

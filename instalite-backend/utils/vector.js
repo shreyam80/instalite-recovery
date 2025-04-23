@@ -1,6 +1,7 @@
 // utils/vector.js
-const axios = require('axios');
-require('dotenv').config();
+import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const VECTOR_DB_ENDPOINT = process.env.CHROMADB_ENDPOINT || 'http://localhost:8000';
 
@@ -44,4 +45,4 @@ async function getTopActorMatches(embedding) {
   }
 }
 
-module.exports = { storeUserEmbedding, getTopActorMatches };
+export { storeUserEmbedding, getTopActorMatches };

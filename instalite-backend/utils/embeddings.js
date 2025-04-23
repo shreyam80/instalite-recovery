@@ -6,4 +6,4 @@ async function generateEmbedding(filePath) {
   return embedding;
 }
 
-module.exports = { generateEmbedding };
+export { generateEmbedding };
