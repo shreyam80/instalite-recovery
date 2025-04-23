@@ -7,7 +7,7 @@ afterAll(() => {
   console.error.mockRestore();
 });
 
-jest.unstable_mockModule('../../chatbot/vector.js', () => ({
+jest.unstable_mockModule('../../installite-backend/utils/vector.js', () => ({
   retrieveRelevantDocs: jest.fn(),
   createRetrieverFromDatabase: jest.fn()
 }));
@@ -34,7 +34,7 @@ beforeEach(async () => {
   const chatbotModule = await import('../../chatbot/chatbot.js');
   callChatbot = chatbotModule.callChatbot;
 
-  const vectorModule = await import('../../chatbot/vector.js');
+  const vectorModule = await import('../../installite-backend/utils/vector.js');
   retrieveRelevantDocs = vectorModule.retrieveRelevantDocs;
 
   const openaiModule = await import('@langchain/openai');

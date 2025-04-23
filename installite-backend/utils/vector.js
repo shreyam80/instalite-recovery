@@ -7,7 +7,8 @@ import { ChromaClient } from 'chromadb';
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { OpenAIEmbeddings } from "@langchain/openai";
+import * as OpenAIModule from "@langchain/openai";
+const OpenAIEmbeddings = OpenAIModule.OpenAIEmbeddings;
 import { get_db_connection } from '../../server/models/rdbms.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
