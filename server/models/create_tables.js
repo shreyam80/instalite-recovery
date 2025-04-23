@@ -25,11 +25,11 @@ await dbaccess.create_tables("DROP TABLE IF EXISTS posts;");
 await dbaccess.create_tables("DROP TABLE IF EXISTS friends;");
 await dbaccess.create_tables("DROP TABLE IF EXISTS hashtags;");
 await dbaccess.create_tables("DROP TABLE IF EXISTS users;");
-await dbaccess.create_tables("DROP TABLE IF EXISTS principals;");
-await dbaccess.create_tables("DROP TABLE IF EXISTS titles;");
-await dbaccess.create_tables("DROP TABLE IF EXISTS names;");
 await dbaccess.create_tables("DROP TABLE IF EXISTS post_likes;");
 await dbaccess.create_tables("DROP TABLE IF EXISTS comment_likes;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS names;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS principals;");
+await dbaccess.create_tables("DROP TABLE IF EXISTS titles;");
 
 
 await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
@@ -115,10 +115,11 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
   );');
 
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS names ( \
-    nconst VARCHAR(255) UNIQUE PRIMARY KEY, \
+    nconst VARCHAR(255), \
     primaryName VARCHAR(255), \
     birthYear VARCHAR(4), \
-    deathYear VARCHAR(4) \
+    deathYear VARCHAR(4), \
+    path TEXT \
     );');
   
     await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS titles ( \
@@ -139,14 +140,12 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
       job VARCHAR(255), \
       characters VARCHAR(255), \
       PRIMARY KEY (tconst, nconst), \
-      FOREIGN KEY (tconst) REFERENCES titles(tconst), \
-      FOREIGN KEY (nconst) REFERENCES names(nconst) \
+      FOREIGN KEY (tconst) REFERENCES titles(tconst)\
     );');    
   
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS post_likes ( \
       post_id INT, \
       user_id INT, \
-      count INT,\
       PRIMARY KEY (post_id, user_id), \
       FOREIGN KEY (post_id) REFERENCES posts(post_id), \
       FOREIGN KEY (user_id) REFERENCES users(user_id) \);');
@@ -154,7 +153,6 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS comment_likes (\
       comment_id INT, \
       user_id INT, \
-      count INT,\
       PRIMARY KEY (comment_id, user_id), \
       FOREIGN KEY (comment_id) REFERENCES comments(comment_id), \
       FOREIGN KEY (user_id) REFERENCES users(user_id) \
