@@ -3,7 +3,7 @@ import pkg from 'kafkajs';
 const { Kafka, CompressionTypes, CompressionCodecs } = pkg;
 import SnappyCodec from 'kafkajs-snappy';
 CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
-import { saveKafkaPost } from "./server/kafka/kafka_db.js";
+import { saveKafkaPost } from "./kafka_db.js";
 
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -19,6 +19,12 @@ const kafka = new Kafka({
 
 const consumer = kafka.consumer({ groupId: config.groupId });
 let kafka_messages = [];
+
+
+// Helper: extract hashtags from post text
+function extractHashtags(text) {
+    return (text.match(/#[\w]+/g) || []).map(tag => tag.slice(1).toLowerCase());
+}
 
 app.get('/', (req, res) => {
     res.send(JSON.stringify(kafka_messages));
@@ -48,17 +54,32 @@ const run = async () => {
                 let postToSave;
 
                 if (topic === "Bluesky-Kafka") {
+                    // 🔄 Username normalization (Spec: create dummy/proxy user IDs)
+                    const normalizedUsername = `bluesky_${parsed.author?.displayName.replace(/\s+/g, "_").toLowerCase() || "user"}`;
+
+                    // 🏷 Hashtag extraction (Spec: hashtags could be inside post text)
+                    const hashtags = extractHashtags(parsed.text);
+
                     postToSave = {
-                        username: parsed.author?.displayName || "bluesky-user",
+                        username: normalizedUsername,
                         avatar: parsed.author?.avatar || null,
                         post_text: parsed.text,
-                        hashtags: parsed.text.match(/#[\w]+/g) || [],
-                        external: true
+                        hashtags,
+                        external: true,
+                        source_site: 'bluesky',
+                        post_uuid_within_site: parsed.uri || null,
+                        created_at: parsed.created_at || new Date()
                     };
                 } else {
+                    // FederatedPosts (Spec: reuse backend logic but use proxy IDs)
+                    const normalizedUsername = `federated_${parsed.username.toLowerCase()}`;
+                    const hashtags = extractHashtags(parsed.post_text);
                     postToSave = {
                         ...parsed,
-                        external: true
+                        username: normalizedUsername,
+                        hashtags,
+                        external: true,
+                        created_at: new Date() // Optional — overwrite if needed
                     };
                 }
 
