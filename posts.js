@@ -1,4 +1,6 @@
 import { get_db_connection } from './server/models/rdbms.js';
+import { producePostEvent } from './server/kafka/producePostEvent.js'; // ✅ Add this line
+
 
 const db = get_db_connection();
 
@@ -13,6 +15,20 @@ export async function createPost(userId, text, imageUrl = null, hashtags = []) {
     if (hashtags.length > 0) {
       await linkPostToHashtags(postId, hashtags);
     }
+
+    // NEW: Add Kafka logic here, after DB insert, before returning result
+    const [userResult] = await db.send_sql(
+      "SELECT username FROM users WHERE user_id = ?",
+      [userId]
+    );
+    const username = userResult[0]?.username || `user_${userId}`;
+
+    await producePostEvent({
+      username,
+      post_text: text,
+      attach: imageUrl,
+      hashtags
+    });
 
     return { success: true, postId };
   } catch (err) {
