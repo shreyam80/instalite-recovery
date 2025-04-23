@@ -1,16 +1,17 @@
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+//import { useEffect, useState } from 'react';
 import FeedPage from './pages/FeedPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Layout from './pages/Layout';
 import { createSocket } from './socket';  // ✅ <-- use createSocket, not import socket directly!
 import ChatsPage from './pages/ChatsPage';
-import SearchPage from './pages/SearchPage';
+import { useEffect, useState } from 'react'; // ← add useState here
+
 
 function App() {
   const navigate = useNavigate();
-  const [socket, setSocket] = useState(null);  // ✅ use state to hold the socket instance
+  const [livePosts, setLivePosts] = useState([]); 
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,10 +48,37 @@ function App() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('Connected to socket:', socket.id);
+    });
+
+    socket.on('userStatus', ({ userId, isOnline }) => {
+      console.log(`User ${userId} is ${isOnline ? 'online' : 'offline'}`);
+    });
+
+    socket.on('chatInvite', (invite) => {
+      console.log('Received chat invite:', invite);
+    });
+
+    socket.on('chatMessage', (message) => {
+      console.log('New chat message:', message);
+    });
+
+    socket.on('newPost', (post) => {
+      console.log('New Kafka Post recieved:', post);
+      setLivePosts(prev => [post, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/feed" element={<FeedPage />} />
+        <Route path="/feed" element={<FeedPage posts={livePosts} />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/chats" element={<ChatsPage />} />

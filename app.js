@@ -5,6 +5,7 @@ import SnappyCodec from 'kafkajs-snappy';
 CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 import { saveKafkaPost } from "./kafka_db.js";
 import testRouter from './testRouter.js';
+import { getIO } from './server/chat/websocket.js';
 
 
 import fs from 'fs';
@@ -40,7 +41,7 @@ const run = async () => {
         console.log(`Subscribing to ${topic}`);
         await consumer.subscribe({
             topic,
-            fromBeginning: true,
+            fromBeginning: false,
             compression: CompressionTypes.Snappy
         });
     }
@@ -93,6 +94,10 @@ const run = async () => {
 
                 // TODO: Replace this with actual DB logic
                 await saveKafkaPost(postToSave);
+
+                // inside your Kafka consumer's eachMessage block:
+                getIO().emit('newPost', postToSave);
+                console.log("📢 Emitted newPost to socket clients:", postToSave);
 
             } catch (err) {
                 console.error("Error parsing Kafka message:", err);
