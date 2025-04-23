@@ -6,9 +6,12 @@ import RegisterPage from './pages/RegisterPage';
 import Layout from './pages/Layout';
 import socket from './socket';
 import ChatsPage from './pages/ChatsPage';
+import { useEffect, useState } from 'react'; // ← add useState here
+
 
 function App() {
   const navigate = useNavigate();
+  const [livePosts, setLivePosts] = useState([]); 
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,6 +37,11 @@ function App() {
       console.log('New chat message:', message);
     });
 
+    socket.on('newPost', (post) => {
+      console.log('New Kafka Post recieved:', post);
+      setLivePosts(prev => [post, ...prev]);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -42,7 +50,7 @@ function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/feed" element={<FeedPage />} />
+        <Route path="/feed" element={<FeedPage posts={livePosts} />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/chats" element={<ChatsPage />} />
