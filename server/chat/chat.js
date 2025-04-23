@@ -1,11 +1,9 @@
 import { get_db_connection } from '../models/rdbms.js';
 import { emitInvite, emitChatMessage } from './websocket.js';
 
-const db = get_db_connection();
-await db.connect();
-
 // Create a new chat session
 export async function createChat(members) {
+  const db = await get_db_connection().connect();
   const sortedMembers = [...members].sort();
   const memberString = JSON.stringify(sortedMembers);
 
@@ -28,18 +26,19 @@ export async function createChat(members) {
 
 // Send a message
 export async function sendMessage(chatId, userId, message) {
+  const db = await get_db_connection().connect();
   const [result] = await db.send_sql(
     'INSERT INTO chat_messages (chat_session_id, user_id, text_content) VALUES (?, ?, ?)',
     [chatId, userId, message]
   );
 
   emitChatMessage(chatId, { senderId: userId, text: message });
-
   return { success: true, messageId: result.insertId };
 }
 
 // Leave a chat
 export async function leaveChat(chatId, userId) {
+  const db = await get_db_connection().connect();
   const [rows] = await db.send_sql(
     'SELECT chat_members FROM chat_sessions WHERE chat_session_id = ?',
     [chatId]
@@ -64,18 +63,19 @@ export async function leaveChat(chatId, userId) {
 
 // Invite someone to chat
 export async function inviteToChat(chatId, inviterId, inviteeId) {
+  const db = await get_db_connection().connect();
   await db.send_sql(
     'INSERT INTO chat_invites (sender_user_id, recipient_user_id, chat_session_id) VALUES (?, ?, ?)',
     [inviterId, inviteeId, chatId]
   );
 
   emitInvite(inviteeId, chatId, inviterId);
-
   return { success: true };
 }
 
 // Accept an invite
 export async function acceptChatInvite(chatId, userId) {
+  const db = await get_db_connection().connect();
   const [check] = await db.send_sql(
     'SELECT * FROM chat_invites WHERE recipient_user_id = ? AND chat_session_id = ?',
     [userId, chatId]
@@ -108,6 +108,7 @@ export async function acceptChatInvite(chatId, userId) {
 
 // Decline an invite
 export async function rejectChatInvite(chatId, userId) {
+  const db = await get_db_connection().connect();
   await db.send_sql(
     'DELETE FROM chat_invites WHERE recipient_user_id = ? AND chat_session_id = ?',
     [userId, chatId]
@@ -117,6 +118,7 @@ export async function rejectChatInvite(chatId, userId) {
 
 // Rescind invite
 export async function rescindInvite(chatId, inviterId, inviteeId) {
+  const db = await get_db_connection().connect();
   await db.send_sql(
     'DELETE FROM chat_invites WHERE sender_user_id = ? AND recipient_user_id = ? AND chat_session_id = ?',
     [inviterId, inviteeId, chatId]
@@ -126,6 +128,7 @@ export async function rescindInvite(chatId, inviterId, inviteeId) {
 
 // Get full chat history
 export async function getChatHistory(chatId) {
+  const db = await get_db_connection().connect();
   const [rows] = await db.send_sql(
     'SELECT message_id, user_id AS senderId, text_content AS text, timestamp FROM chat_messages WHERE chat_session_id = ? ORDER BY timestamp ASC',
     [chatId]
@@ -135,6 +138,7 @@ export async function getChatHistory(chatId) {
 
 // Get all pending invites for a user
 export async function getInvites(userId) {
+  const db = await get_db_connection().connect();
   const [rows] = await db.send_sql(
     'SELECT sender_user_id AS senderId, chat_session_id AS chatId, timestamp FROM chat_invites WHERE recipient_user_id = ?',
     [userId]
@@ -144,8 +148,7 @@ export async function getInvites(userId) {
 
 // Get all chats a user is in
 export async function getUserChats(userId) {
-  const db = get_db_connection();
-
+  const db = await get_db_connection().connect();
   const [rows] = await db.send_sql(
     `SELECT chat_session_id AS chatId, chat_members 
      FROM chat_sessions 

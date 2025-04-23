@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { retrieveRelevantDocs, createRetrieverFromDatabase } from "./vector.js";
+import { retrieveRelevantDocs, createRetrieverFromDatabase } from "../installite-backend/utils/vector.js";
 
 const template = `
 Answer the question based on the following context:

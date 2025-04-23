@@ -1,6 +1,6 @@
 import {
   handleLogin,
-  handleRegister, handleSearch,
+  handleRegister,
   handleCreateChat,
   handleSendMessage,
   handleLeaveChat,
@@ -10,13 +10,14 @@ import {
   handleRescindInvite,
   handleGetChatHistory,
   handleGetInvites,
+  handleSearch,
   handleGetUserChats
 } from './routes.js';
 
 export default function registerRoutes(app) {
   app.post('/auth/login', handleLogin);
   app.post('/auth/register', handleRegister);
-  app.post('/auth/search', handleSearch);
+  app.post('/search', handleSearch);
 
   app.post('/chat/create', handleCreateChat);
   app.post('/chat/send', handleSendMessage);

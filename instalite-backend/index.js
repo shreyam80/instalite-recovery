@@ -1,26 +1,33 @@
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
 import registerRoutes from './routes/registerRoutes.js';
-import { createRetrieverFromDatabase } from '../chatbot/vector.js';
+import dotenv from 'dotenv';
+dotenv.config({ path: '../.env' });
 
-async function startServer() {
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
-  registerRoutes(app); // mount all routes here
 
-  try {
-    await createRetrieverFromDatabase();  // <-- ✅ Initialize retriever
-    console.log('Retriever initialized successfully');
-  } catch (err) {
-    console.error('Failed to initialize retriever:', err);
-    process.exit(1);  // Exit if retriever setup fails
-  }
+const app = express();
+const server = http.createServer(app);  // Combined server for both Express and Socket.IO
 
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const io = new Server(server, {
+  cors: { origin: 'http://localhost:3000', methods: ['GET', 'POST'] }
+});
+
+app.use(cors());
+app.use(express.json());
+registerRoutes(app);
+
+io.on('connection', (socket) => {
+  const { userId } = socket.handshake.query;
+  console.log(`✅ Socket connected! userId=${userId}, socket.id=${socket.id}`);
+
+  socket.on('disconnect', () => {
+    console.log(`❌ User ${userId} disconnected.`);
   });
-}
+});
 
-startServer();  // ✅ Actually start the server
+const PORT = 3030;
+server.listen(PORT, () => {
+  console.log(`🚀 Backend + Socket.IO running on port ${PORT}`);
+});
