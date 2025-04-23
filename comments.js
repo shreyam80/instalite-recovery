@@ -1,5 +1,8 @@
 import { get_db_connection } from './server/models/rdbms.js';
+//import { produceCommentEvent } from './server/kafka/produceCommentEvent.js';
+import { CriteriaResultOutputParser } from 'langchain/evaluation';
 const db = get_db_connection();
+
 
 export async function addComment(postId, userId, text, parentCommentId = null) {
   try {
@@ -8,11 +11,31 @@ export async function addComment(postId, userId, text, parentCommentId = null) {
        VALUES (?, ?, ?, ?)`,
       [postId, userId, text, parentCommentId]
     );
-    return { success: true, commentId: result.insertId };
-  } catch (err) {
-    console.error("addComment error:", err);
-    return { error: "Failed to add comment" };
-  }
+    const commentID = result.insertId;
+
+// 2) Fetch the commenting user’s username
+const [[userRow]] = await db.send_sql(
+  'SELECT username FROM users WHERE user_id = ?',
+  [userId]
+);
+const username = userRow.username;
+
+// 3) Fetch the post’s external UUID (so your consumer can look up the right post)
+// const [[postRow]] = await db.send_sql(
+//   'SELECT external_site_id FROM posts WHERE post_id = ?',
+//   [postId]
+// );
+// const post_uuid_within_site = postRow.external_site_id;
+
+// // 4) Publish the comment event to Kafka
+// await produceCommentEvent({ username, post_uuid_within_site, text });
+
+// 5) Return success
+return { success: true, commentId };
+} catch (err) {
+console.error("addComment error:", err);
+return { error: "Failed to add comment" };
+}
 }
 
 export async function likeComment(commentId, userId) {

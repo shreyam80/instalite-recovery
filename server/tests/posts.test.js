@@ -35,7 +35,7 @@ beforeAll(async () => {
 // Test: createPost
 // ----------------------------------
 test('createPost creates a post with text and hashtags', async () => {
-  const res = await createPost(testUserId, "My first test post", null, ["#test", "#jest"]);
+  const res = await createPost(testUserId, "My first test post 1", null, ["#test", "#jest"]);
   expect(res.success).toBe(true);
   expect(res.postId).toBeDefined();
   testPostId = res.postId;
