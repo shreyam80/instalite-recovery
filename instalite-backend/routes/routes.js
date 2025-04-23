@@ -1,4 +1,3 @@
-// routes.js
 import { authenticateUser, createUser } from '../../users.js';
 import {
   createChat,
@@ -12,8 +11,13 @@ import {
   getInvites,
   getUserChats
 } from '../../server/chat/chat.js';
+import { callChatbot } from '../../chatbot/chatbot.js';
+import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
 
-// ---------- AUTH ----------
+// ✅ Retriever state (lazy initialization)
+let retrieverInitialized = false;
+
+// ------------------ AUTH ------------------
 
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
@@ -37,7 +41,32 @@ export async function handleRegister(req, res) {
   res.json(loginResult);
 }
 
-// ---------- CHATS ----------
+// ------------------ CHATBOT SEARCH ------------------
+
+export async function handleSearch(req, res) {
+  const { question } = req.body;
+
+  if (!question) {
+    return res.status(400).json({ error: "No question provided" });
+  }
+
+  try {
+    // ✅ Lazy initialization of the retriever
+    if (!retrieverInitialized) {
+      console.log("🔄 Initializing chatbot retriever...");
+      await createRetrieverFromDatabase();
+      retrieverInitialized = true;
+    }
+
+    const answer = await callChatbot(question);
+    res.json({ answer });
+  } catch (err) {
+    console.error("❌ Chatbot error in handleSearch:", err);
+    res.status(500).json({ error: "Chatbot failed to process your question" });
+  }
+}
+
+// ------------------ CHATS ------------------
 
 export async function handleGetUserChats(req, res) {
   const { userId } = req.query;
@@ -98,8 +127,3 @@ export async function handleGetInvites(req, res) {
   const result = await getInvites(userId);
   res.json(result);
 }
-
-export async function handleSearch(req, res) {
-  res.json({ message: "Search route working" });
-}
-

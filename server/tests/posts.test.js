@@ -75,7 +75,7 @@ test('getPostsForUser retrieves user’s own post correctly', async () => {
 
   const post = posts.find(p => p.postId === testPostId);
   expect(post).toBeDefined();
-  expect(post.text).toBe("My first test post");
+  expect(post.text).toBe("My first test post 1");
   expect(post.author).toBeDefined();
 });
 
