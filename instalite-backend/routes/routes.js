@@ -2,6 +2,18 @@
 import { authenticateUser, createUser } from '../../users.js';
 import { callChatbot } from '../../chatbot/chatbot.js';
 import {createRetrieverFromDatabase } from '../../chatbot/vector.js';
+import {
+  createChat,
+  sendMessage,
+  leaveChat,
+  inviteToChat,
+  acceptChatInvite,
+  rejectChatInvite,
+  rescindInvite,
+  getChatHistory,
+  getInvites,
+  getUserChats
+} from '../../server/chat/chat.js';
 
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
@@ -10,7 +22,9 @@ export async function handleLogin(req, res) {
 }
 
 export async function handleRegister(req, res) {
+  console.log("Received register POST:", req.body);
   const createResult = await createUser(req.body);
+  console.log("Create result:", createResult);
   if (createResult.error) return res.status(400).json({ error: createResult.error });
 
   const loginResult = await authenticateUser({
@@ -23,6 +37,7 @@ export async function handleRegister(req, res) {
   res.json(loginResult);
 }
 
+<<<<<<< HEAD
 export async function handleSearch(req, res) {
   const { question } = req.body;
 
@@ -36,4 +51,66 @@ export async function handleSearch(req, res) {
     console.error("Chatbot error in handleSearch:", err);
     res.status(500).json({ error: "Chatbot failed to process your question" });
   }
+=======
+// ---------- CHATS ----------
+
+export async function handleGetUserChats(req, res) {
+  const { userId } = req.query;
+  const result = await getUserChats(userId);
+  res.json(result);
+}
+
+export async function handleCreateChat(req, res) {
+  const { members } = req.body;
+  const result = await createChat(members);
+  res.json(result);
+}
+
+export async function handleSendMessage(req, res) {
+  const { chatId, userId, message } = req.body;
+  const result = await sendMessage(chatId, userId, message);
+  res.json(result);
+}
+
+export async function handleLeaveChat(req, res) {
+  const { chatId, userId } = req.body;
+  const result = await leaveChat(chatId, userId);
+  res.json(result);
+}
+
+export async function handleInviteToChat(req, res) {
+  const { chatId, inviterId, inviteeId } = req.body;
+  const result = await inviteToChat(chatId, inviterId, inviteeId);
+  res.json(result);
+}
+
+export async function handleAcceptInvite(req, res) {
+  const { chatId, userId } = req.body;
+  const result = await acceptChatInvite(chatId, userId);
+  res.json(result);
+}
+
+export async function handleRejectInvite(req, res) {
+  const { chatId, userId } = req.body;
+  const result = await rejectChatInvite(chatId, userId);
+  res.json(result);
+}
+
+export async function handleRescindInvite(req, res) {
+  const { chatId, inviterId, inviteeId } = req.body;
+  const result = await rescindInvite(chatId, inviterId, inviteeId);
+  res.json(result);
+}
+
+export async function handleGetChatHistory(req, res) {
+  const { chatId } = req.query;
+  const result = await getChatHistory(chatId);
+  res.json(result);
+}
+
+export async function handleGetInvites(req, res) {
+  const { userId } = req.query;
+  const result = await getInvites(userId);
+  res.json(result);
+>>>>>>> 3215ec61b955d9375d655f67cbfec46e9b573df7
 }

@@ -1,4 +1,4 @@
-import { get_db_connection } from '../models/rdbms.js';
+import { get_db_connection } from './server/models/rdbms.js';
 
 export async function saveKafkaPost(post) {
   const db = get_db_connection();
