@@ -52,11 +52,11 @@ const run = async () => {
 
             try {
                 const parsed = JSON.parse(raw);
-                if (parsed.type === 'comment') {
-                    console.log(`[${topic}] Received comment:`, parsed);
-                    await saveKafkaComment(parsed); // we’ll write this next
-                    return;
-                  }
+                // if (parsed.type === 'comment') {
+                //     console.log(`[${topic}] Received comment:`, parsed);
+                //     await saveKafkaComment(parsed); // we’ll write this next
+                //     return;
+                //   }
                 let postToSave;
 
                 if (topic === "Bluesky-Kafka") {
