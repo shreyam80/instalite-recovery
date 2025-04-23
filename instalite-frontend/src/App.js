@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import Layout from './pages/Layout';
 import socket from './socket';
 import ChatsPage from './pages/ChatsPage';
+import SearchPage from './pages/SearchPage'; 
 
 function App() {
   const navigate = useNavigate();

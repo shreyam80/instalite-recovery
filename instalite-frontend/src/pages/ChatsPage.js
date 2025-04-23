@@ -1,55 +1,77 @@
+// instalite-frontend/src/pages/ChatsPage.js
 import { useEffect, useState } from "react";
 import socket from "../socket";
 
+const API = "http://localhost:3030";   // single source-of-truth
+
 export default function ChatsPage() {
-  const [chats, setChats] = useState([]);
-  const [messages, setMessages] = useState({});
-  const userId = localStorage.getItem("userId");
+  const [chats, setChats] = useState([]);          // [{chatId, members}]
+  const [messages, setMessages] = useState({});    // { chatId : [ {senderId,text}, … ] }
+  const userId = Number(localStorage.getItem("userId") ?? 0);
 
-  // Fetch all chat sessions on mount
+  /* ---------- initial load ---------- */
   useEffect(() => {
-    async function fetchChats() {
-      const res = await fetch(`http://localhost:3030/chat/sessions?userId=${userId}`);
-      const sessions = await res.json();
-      setChats(sessions);
+    if (!userId) return;
 
-      for (const chat of sessions) {
-        socket.emit("joinChat", chat.chatId, () => {});
-        const res = await fetch(`http://localhost:3030/chat/history?chatId=${chat.chatId}`);
-        const history = await res.json();
-        setMessages(prev => ({ ...prev, [chat.chatId]: history }));
+    (async () => {
+      try {
+        const r = await fetch(`${API}/chat/sessions?userId=${userId}`);
+        const sessions = await r.json();
+        console.log("Fetched chat sessions:", sessions);
+        setChats(sessions);
+
+        /* join each room & pull history */
+        await Promise.all(
+          sessions.map(async ({ chatId }) => {
+            socket.emit("joinChat", chatId);
+            const hist = await fetch(`${API}/chat/history?chatId=${chatId}`).then((x) =>
+              x.json()
+            );
+            setMessages((prev) => ({ ...prev, [chatId]: hist }));
+          })
+        );
+      } catch (err) {
+        console.error("Failed to fetch chats:", err);
       }
-    }
-
-    fetchChats();
+    })();
   }, [userId]);
 
-  // Listen for incoming messages
+  /* ---------- live socket updates ---------- */
   useEffect(() => {
-    socket.on("chatMessage", (msg) => {
-      setMessages(prev => {
-        const newMessages = [...(prev[msg.chatId] || []), msg];
-        return { ...prev, [msg.chatId]: newMessages };
-      });
-    });
+    const onMsg = (msg) =>
+      setMessages((prev) => ({
+        ...prev,
+        [msg.chatId]: [...(prev[msg.chatId] || []), msg],
+      }));
 
-    return () => socket.off("chatMessage");
+    socket.on("chatMessage", onMsg);
+    return () => socket.off("chatMessage", onMsg);
   }, []);
 
+  /* ---------- render ---------- */
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 24 }}>
       <h2>Your Chats</h2>
-      {chats.map(chat => (
-        <div key={chat.chatId} style={{ marginBottom: 20 }}>
-          <h4>Chat ID: {chat.chatId}</h4>
+
+      {chats.length === 0 && <p>No active chats found.</p>}
+
+      {chats.map(({ chatId, members }) => (
+        <section key={chatId} style={{ marginBottom: 24 }}>
+          <h4>
+            Chat&nbsp;#{chatId}&nbsp;
+            <small style={{ fontWeight: 400 }}>
+              (members: {members.join(", ")})
+            </small>
+          </h4>
+
           <ul>
-            {(messages[chat.chatId] || []).map((msg, i) => (
-              <li key={i}>
-                <strong>{msg.senderId}:</strong> {msg.text}
+            {(messages[chatId] || []).map((m) => (
+              <li key={m.message_id ?? Math.random()}>
+                <strong>{m.senderId}:</strong> {m.text}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       ))}
     </div>
   );

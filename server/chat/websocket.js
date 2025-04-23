@@ -80,6 +80,10 @@ function emitInvite(inviteeId, chatId, inviterName) {
 }
 
 function emitChatMessage(chatId, message) {
+  if (!io) {
+    console.log(`[SKIP] emitChatMessage skipped, io not initialized`);
+    return;
+  }
   io.to(chatId).emit('chatMessage', message);
 }
 

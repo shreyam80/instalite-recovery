@@ -144,17 +144,24 @@ export async function getInvites(userId) {
 
 // Get all chats a user is in
 export async function getUserChats(userId) {
-  const db = get_db_connection();
+  const db  = get_db_connection();
+  const uid = Number(userId);
 
   const [rows] = await db.send_sql(
-    `SELECT chat_session_id AS chatId, chat_members 
-     FROM chat_sessions 
-     WHERE JSON_CONTAINS(chat_members, JSON_ARRAY(?))`,
-    [userId]
+    `
+    SELECT chat_session_id AS chatId, chat_members
+    FROM   chat_sessions
+    WHERE  (
+             JSON_VALID(chat_members)
+             AND JSON_CONTAINS(chat_members, JSON_ARRAY(?))
+           )
+       OR (
+             NOT JSON_VALID(chat_members)
+             AND CONCAT(',', chat_members, ',') LIKE CONCAT('%,', ?, ',%')
+           )
+    `,
+    [uid, uid]
   );
 
-  return rows.map(row => ({
-    chatId: row.chatId,
-    members: JSON.parse(row.chat_members)
-  }));
+  return rows.map(r => ({ chatId: r.chatId, members: JSON.parse(r.chat_members) }));
 }
