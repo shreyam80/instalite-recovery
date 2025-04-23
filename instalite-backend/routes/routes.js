@@ -15,9 +15,6 @@ import {
   getUserChats
 } from '../../server/chat/chat.js';
 
-// ---------- AUTH ----------
->>>>>>> 3215ec61b955d9375d655f67cbfec46e9b573df7
-
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
