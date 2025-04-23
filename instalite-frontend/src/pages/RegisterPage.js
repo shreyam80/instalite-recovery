@@ -31,7 +31,7 @@ export default function RegisterPage() {
     };
 
     try {
-      const res = await fetch("http://localhost:3000/auth/register", {
+      const res = await fetch("http://localhost:3030/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -48,6 +48,7 @@ export default function RegisterPage() {
 
       navigate("/feed");
     } catch (err) {
+      console.error("Register error:", err);
       setError("Something went wrong");
     }
   };
