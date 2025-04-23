@@ -79,7 +79,7 @@ app.post('/uploadProfileImage', upload.single('profileImage'), async (req, res) 
 
     // 4) persist in your “DB”
     await updateUserRecord(userId, { profileImageUrl: imageUrl });
-    await storeUserEmbedding(userId, embedding);
+    // await storeUserEmbedding(userId, embedding);
 
     // 5) similarity search
     const actorMatches = await getTopActorMatches(embedding);

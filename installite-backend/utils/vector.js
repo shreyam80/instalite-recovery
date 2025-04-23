@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const client = new ChromaClient({ path: process.env.CHROMA_URL || 'http://localhost:8000' });
-const COLLECTION_NAME = 'users';
+const COLLECTION_NAME = 'actors';
 
 let collection = null;
 
@@ -40,17 +40,21 @@ export async function storeUserEmbedding(userId, embedding) {
 }
 
 export async function getTopActorMatches(embedding) {
-  const coll = await ensureCollectionExists();
-  try {
-    const results = await coll.query({
+    // grab the seeded 'actors' collection
+    const coll = await ensureCollectionExists();
+  
+    // perform the similarity query
+    const response = await coll.query({
       queryEmbeddings: [embedding],
       nResults: 5,
-      include: ['distances', 'metadatas', 'documents', 'embeddings'] // clarify response
+      include: ['distances', 'metadatas'],
     });
-    console.log(`✅ Retrieved top actor matches`);
-    return results;
-  } catch (error) {
-    console.error("❌ Error querying embedding:", error.message);
-    throw error;
+  
+    // map into a nice array of matches
+    return response.ids[0].map((id, i) => ({
+      nconst:   id,
+      name:     response.metadatas[0][i]?.name,
+      imageUrl: response.metadatas[0][i]?.imageUrl,
+      distance: response.distances[0][i],
+    }));
   }
-}
