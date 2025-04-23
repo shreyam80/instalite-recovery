@@ -4,6 +4,8 @@ const { Kafka, CompressionTypes, CompressionCodecs } = pkg;
 import SnappyCodec from 'kafkajs-snappy';
 CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 import { saveKafkaPost } from "./kafka_db.js";
+import testRouter from './testRouter.js';
+
 
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -96,6 +98,8 @@ const run = async () => {
 };
 
 run().catch(console.error);
+app.use(express.json()); // already using express — enable JSON body parsing
+app.use('/test', testRouter); // now you can call POST /test/create
 app.listen(config.port, () => {
     console.log(`App is listening on port ${config.port}`);
 });
