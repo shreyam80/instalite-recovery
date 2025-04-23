@@ -74,3 +74,43 @@
 [32mINFO[0m:     [20-04-2025 01:03:25] 127.0.0.1:41284 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
 [32mINFO[0m:     [20-04-2025 01:03:26] 127.0.0.1:41288 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/upsert HTTP/1.1" 200
 [32mINFO[0m:     [20-04-2025 01:03:27] 127.0.0.1:41284 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/35d989cd-ef2d-40fc-a7ab-78e388d2e3e7/query?limit=4 HTTP/1.1" 200
+[33mWARNING[0m:  [22-04-2025 13:14:32] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [22-04-2025 13:14:32] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component System
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component SqliteDB
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component Posthog
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component LocalExecutor
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component SegmentAPI
+[36mDEBUG[0m:    [22-04-2025 13:14:32] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [22-04-2025 13:14:32] Started server process [[36m24589[0m]
+[32mINFO[0m:     [22-04-2025 13:14:32] Waiting for application startup.
+[32mINFO[0m:     [22-04-2025 13:14:32] Application startup complete.
+[32mINFO[0m:     [22-04-2025 13:14:32] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [22-04-2025 13:14:35] 127.0.0.1:49246 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:36:20] 127.0.0.1:41544 - "POST /embeddings HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:37:46] 127.0.0.1:53480 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:37:51] 127.0.0.1:53494 - "GET / HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:44:15] 127.0.0.1:43406 - "POST /collections HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:54:57] 127.0.0.1:59348 - "GET /docs HTTP/1.1" 200
+[32mINFO[0m:     [22-04-2025 15:56:40] 127.0.0.1:46968 - "GET /docs HTTP/1.1" 200
+[32mINFO[0m:     [22-04-2025 15:58:15] 127.0.0.1:56474 - "POST /collections HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 15:59:55] 127.0.0.1:38474 - "POST /v1/collections HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 16:01:53] 127.0.0.1:41834 - "POST /collections HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 16:16:31] 127.0.0.1:57238 - "POST /collections HTTP/1.1" 404
+[32mINFO[0m:     [22-04-2025 16:22:14] 127.0.0.1:33276 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [22-04-2025 16:22:14] 127.0.0.1:33288 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [22-04-2025 16:22:14] 127.0.0.1:33276 - "GET /api/v2/tenants/default_tenant/databases/default_database/collections/users HTTP/1.1" 400
+[32mINFO[0m:     [22-04-2025 16:22:14] 127.0.0.1:33288 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [22-04-2025 16:22:14] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [22-04-2025 16:22:14] 127.0.0.1:33276 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/add HTTP/1.1" 201
+[33mWARNING[0m:  [22-04-2025 16:22:14] Number of requested results 5 is greater than number of elements in index 1, updating n_results = 1
+[32mINFO[0m:     [22-04-2025 16:22:15] 127.0.0.1:33288 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/query?limit=5 HTTP/1.1" 200
+[33mWARNING[0m:  [22-04-2025 16:27:30] Insert of existing embedding ID: testUser
+[33mWARNING[0m:  [22-04-2025 16:27:30] Add of existing embedding ID: testUser
+[32mINFO[0m:     [22-04-2025 16:27:30] 127.0.0.1:39954 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/add HTTP/1.1" 201
+[33mWARNING[0m:  [22-04-2025 16:27:30] Number of requested results 5 is greater than number of elements in index 1, updating n_results = 1
+[32mINFO[0m:     [22-04-2025 16:27:30] 127.0.0.1:39964 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/query?limit=5 HTTP/1.1" 200
