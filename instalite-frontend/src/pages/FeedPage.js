@@ -1,4 +1,4 @@
-import './FeedPage.css';
+//import './FeedPage.css';
 
 export default function FeedPage({ posts = [] }) {
     return (

@@ -41,7 +41,7 @@ const run = async () => {
         console.log(`Subscribing to ${topic}`);
         await consumer.subscribe({
             topic,
-            fromBeginning: true,
+            fromBeginning: false,
             compression: CompressionTypes.Snappy
         });
     }
