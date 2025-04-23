@@ -15,6 +15,9 @@ import {
   getUserChats
 } from '../../server/chat/chat.js';
 
+// ---------- AUTH ----------
+>>>>>>> 3215ec61b955d9375d655f67cbfec46e9b573df7
+
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
@@ -37,7 +40,6 @@ export async function handleRegister(req, res) {
   res.json(loginResult);
 }
 
-<<<<<<< HEAD
 export async function handleSearch(req, res) {
   const { question } = req.body;
 
@@ -51,7 +53,7 @@ export async function handleSearch(req, res) {
     console.error("Chatbot error in handleSearch:", err);
     res.status(500).json({ error: "Chatbot failed to process your question" });
   }
-=======
+}
 // ---------- CHATS ----------
 
 export async function handleGetUserChats(req, res) {
@@ -112,5 +114,4 @@ export async function handleGetInvites(req, res) {
   const { userId } = req.query;
   const result = await getInvites(userId);
   res.json(result);
->>>>>>> 3215ec61b955d9375d655f67cbfec46e9b573df7
 }
