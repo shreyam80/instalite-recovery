@@ -21,6 +21,7 @@ function App() {
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/search" element={<SearchPage />} />
       </Route>
     </Routes>
   );
