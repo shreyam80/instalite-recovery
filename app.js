@@ -52,7 +52,11 @@ const run = async () => {
 
             try {
                 const parsed = JSON.parse(raw);
-
+                if (parsed.type === 'comment') {
+                    console.log(`[${topic}] Received comment:`, parsed);
+                    await saveKafkaComment(parsed); // we’ll write this next
+                    return;
+                  }
                 let postToSave;
 
                 if (topic === "Bluesky-Kafka") {
@@ -88,7 +92,7 @@ const run = async () => {
                 console.log(`[${topic}]`, postToSave);
 
                 // TODO: Replace this with actual DB logic
-                //await saveKafkaPost(postToSave);
+                await saveKafkaPost(postToSave);
 
             } catch (err) {
                 console.error("Error parsing Kafka message:", err);
