@@ -49660,3 +49660,67 @@
 [33mWARNING[0m:  [23-04-2025 00:28:11] Add of existing embedding ID: nm0000126
 [33mWARNING[0m:  [23-04-2025 00:28:11] Delete of nonexisting embedding ID: testUser
 [32mINFO[0m:     [23-04-2025 00:28:11] 127.0.0.1:39774 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 01:09:40] 127.0.0.1:40350 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 01:30:33] 127.0.0.1:40136 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36420 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36428 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36420 - "GET /api/v2/tenants/default_tenant/databases/default_database/collections/faces HTTP/1.1" 400
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36428 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [23-04-2025 08:19:55] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36420 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/2ab7158a-85f0-4235-b446-3f374965cf7c/add HTTP/1.1" 201
+[33mWARNING[0m:  [23-04-2025 08:19:55] Number of requested results 5 is greater than number of elements in index 1, updating n_results = 1
+[32mINFO[0m:     [23-04-2025 08:19:55] 127.0.0.1:36428 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/2ab7158a-85f0-4235-b446-3f374965cf7c/query?limit=5 HTTP/1.1" 200
+[33mWARNING[0m:  [23-04-2025 08:21:41] Insert of existing embedding ID: testUser
+[33mWARNING[0m:  [23-04-2025 08:21:41] Add of existing embedding ID: testUser
+[32mINFO[0m:     [23-04-2025 08:21:41] 127.0.0.1:44412 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/2ab7158a-85f0-4235-b446-3f374965cf7c/add HTTP/1.1" 201
+[33mWARNING[0m:  [23-04-2025 08:21:41] Number of requested results 5 is greater than number of elements in index 1, updating n_results = 1
+[32mINFO[0m:     [23-04-2025 08:21:41] 127.0.0.1:44414 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/2ab7158a-85f0-4235-b446-3f374965cf7c/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:27:49] 127.0.0.1:48782 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:27:49] 127.0.0.1:48784 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:27:49] 127.0.0.1:48782 - "GET /api/v2/tenants/default_tenant/databases/default_database/collections/actors HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 08:27:49] 127.0.0.1:48784 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/add HTTP/1.1" 201
+[32mINFO[0m:     [23-04-2025 08:27:49] 127.0.0.1:48782 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[33mWARNING[0m:  [23-04-2025 08:29:40] Insert of existing embedding ID: testUser
+[33mWARNING[0m:  [23-04-2025 08:29:40] Add of existing embedding ID: testUser
+[32mINFO[0m:     [23-04-2025 08:29:40] 127.0.0.1:52084 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/add HTTP/1.1" 201
+[32mINFO[0m:     [23-04-2025 08:29:40] 127.0.0.1:52088 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:14:53] 127.0.0.1:60648 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:14:53] 127.0.0.1:60658 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:14:53] 127.0.0.1:60648 - "GET /api/v2/tenants/default_tenant/databases/default_database/collections/actors HTTP/1.1" 200
+[33mWARNING[0m:  [23-04-2025 09:14:53] Insert of existing embedding ID: testUser
+[33mWARNING[0m:  [23-04-2025 09:14:53] Add of existing embedding ID: testUser
+[32mINFO[0m:     [23-04-2025 09:14:53] 127.0.0.1:60658 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/add HTTP/1.1" 201
+[32mINFO[0m:     [23-04-2025 09:14:53] 127.0.0.1:60648 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:34:04] 127.0.0.1:58824 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:34:04] 127.0.0.1:58830 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 09:34:04] 127.0.0.1:58824 - "GET /api/v2/tenants/default_tenant/databases/default_database/collections/actors HTTP/1.1" 200
+[33mWARNING[0m:  [23-04-2025 09:34:04] Insert of existing embedding ID: testUser
+[33mWARNING[0m:  [23-04-2025 09:34:04] Add of existing embedding ID: testUser
+[32mINFO[0m:     [23-04-2025 09:34:04] 127.0.0.1:58830 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/add HTTP/1.1" 201
+[32mINFO[0m:     [23-04-2025 09:34:04] 127.0.0.1:58824 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/4a81376f-d051-4095-abd1-56c1b74ae395/query?limit=5 HTTP/1.1" 200
+[33mWARNING[0m:  [23-04-2025 11:14:46] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [23-04-2025 11:14:47] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component System
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component SqliteDB
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component Posthog
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component LocalExecutor
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component SegmentAPI
+[36mDEBUG[0m:    [23-04-2025 11:14:47] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [23-04-2025 11:14:47] Started server process [[36m20330[0m]
+[32mINFO[0m:     [23-04-2025 11:14:47] Waiting for application startup.
+[32mINFO[0m:     [23-04-2025 11:14:47] Application startup complete.
+[32mINFO[0m:     [23-04-2025 11:14:47] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [23-04-2025 11:15:07] 127.0.0.1:44538 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 11:15:07] 127.0.0.1:44544 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 11:15:08] 127.0.0.1:44538 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [23-04-2025 11:15:09] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [23-04-2025 11:15:10] 127.0.0.1:44544 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/9d8180bb-72ba-4ed3-8dcc-add71fbbc34a/upsert HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 11:46:00] 127.0.0.1:45096 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 11:46:00] 127.0.0.1:45110 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [23-04-2025 11:46:00] Collection actor_movie_roles already exists, returning existing collection.
+[32mINFO[0m:     [23-04-2025 11:46:00] 127.0.0.1:45096 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [23-04-2025 11:46:02] 127.0.0.1:45110 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/9d8180bb-72ba-4ed3-8dcc-add71fbbc34a/upsert HTTP/1.1" 200

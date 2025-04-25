@@ -35,7 +35,7 @@ beforeAll(async () => {
 // Test: createPost
 // ----------------------------------
 test('createPost creates a post with text and hashtags', async () => {
-  const res = await createPost(testUserId, "My first test post", null, ["#test", "#jest"]);
+  const res = await createPost(testUserId, "My first test post 1", null, ["#test", "#jest"]);
   expect(res.success).toBe(true);
   expect(res.postId).toBeDefined();
   testPostId = res.postId;
@@ -75,7 +75,7 @@ test('getPostsForUser retrieves user’s own post correctly', async () => {
 
   const post = posts.find(p => p.postId === testPostId);
   expect(post).toBeDefined();
-  expect(post.text).toBe("My first test post");
+  expect(post.text).toBe("My first test post 1");
   expect(post.author).toBeDefined();
 });
 

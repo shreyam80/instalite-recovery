@@ -12,6 +12,8 @@ import {
   getInvites,
   getUserChats,
 } from "../../server/chat/chat.js";
+import { callChatbot } from '../../chatbot/chatbot.js';
+import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
 
 /* ---------- AUTH ---------- */
 export async function handleLogin(req, res) {
@@ -38,8 +40,25 @@ export async function handleRegister(req, res) {
 /* ---------- CHATBOT SEARCH (stub) ---------- */
 export async function handleSearch(req, res) {
   const { question } = req.body;
-  if (!question) return res.status(400).json({ error: "No question supplied" });
-  res.json({ answer: `Pretend answer for: "${question}"` });
+
+  if (!question) {
+    return res.status(400).json({ error: "No question provided" });
+  }
+
+  try {
+    // ✅ Lazy initialization of the retriever
+    if (!retrieverInitialized) {
+      console.log("🔄 Initializing chatbot retriever...");
+      await createRetrieverFromDatabase();
+      retrieverInitialized = true;
+    }
+
+    const answer = await callChatbot(question);
+    res.json({ answer });
+  } catch (err) {
+    console.error("❌ Chatbot error in handleSearch:", err);
+    res.status(500).json({ error: "Chatbot failed to process your question" });
+  }
 }
 
 /* ---------- CHAT REST ---------- */

@@ -1,5 +1,5 @@
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import FeedPage from './pages/FeedPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';

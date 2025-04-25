@@ -1,139 +1,105 @@
 import fs from 'fs';
 import mysql from 'mysql2/promise';
 import process from 'process';
+import dotenv from 'dotenv';
+dotenv.config();  // ✅ Ensure environment variables are loaded
 
+// Optional: Load additional config from config.json if needed
 const configFile = fs.readFileSync('config.json', 'utf8');
 const config = JSON.parse(configFile);
 
-// Dotenv reads the .env file and makes the environment variables available
-import dotenv from 'dotenv';
-dotenv.config()
-
 /**
- * Implementation of a singleton pattern for database connections
+ * Singleton pattern for managing database connections.
  */
-
-var the_db = null;
-
+let the_db = null;
 
 class RelationalDB {
-    conn = null;
-    dbconfig = null;
+  conn = null;
+  dbconfig = null;
 
-    constructor() {
-        this.dbconfig = {}; // must be initialized
-    
-        this.dbconfig.host = process.env.DATABASE_SERVER;
-        this.dbconfig.user = process.env.DATABASE_USER;
-        this.dbconfig.password = process.env.DATABASE_PASSWORD;
-        this.dbconfig.database = process.env.DATABASE_NAME;
-    
-        this.connection = mysql.createConnection(this.dbconfig);
-      }
+  constructor() {
+    this.dbconfig = {
+      host: process.env.DATABASE_SERVER,
+      user: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
+    };
 
-    setInfo(dbserver, dbname, dbuser, dbpassword) {
-        this.dbconfig = config.database;
-        this.dbconfig.host = dbserver;
-        this.dbconfig.database = dbname;
-        this.dbconfig.user = dbuser;
-        this.dbconfig.password = dbpassword;
+    console.log('DB_USER:', this.dbconfig.user);
+    console.log('DB_PASSWORD:', this.dbconfig.password ? '****' : 'MISSING');
+  }
 
-        return this;
+  setInfo(dbserver, dbname, dbuser, dbpassword) {
+    this.dbconfig = config.database;
+    this.dbconfig.host = dbserver;
+    this.dbconfig.database = dbname;
+    this.dbconfig.user = dbuser;
+    this.dbconfig.password = dbpassword;
+    return this;
+  }
+
+  async connect() {
+    if (this.conn != null) {
+      return this;
     }
 
-    async connect() {
-        if (this.conn != null) 
-            return this;
-
-        console.log("New connection request");
-        // Connect to MySQL
-        var conn = await mysql.createConnection(this.dbconfig);
-        if (this.conn == null) {
-            console.log("New connection used");
-            this.conn = conn;
-        } else {
-            console.log("New connection discarded");
-            conn.close();
-        }
-
-        return this;
+    console.log("New connection request");
+    try {
+      this.conn = await mysql.createConnection(this.dbconfig);
+      console.log("✅ Database connection established.");
+    } catch (err) {
+      console.error("❌ Database connection failed:", err);
+      throw err;  // Let the caller handle the error properly
     }
+    return this;
+  }
 
-    /**
-     * Gracefully close the database connection and deallocate the main object
-     */
-    close() {
-        this.conn.end();
-        this.conn = null;
-        the_db = null;
+  close() {
+    if (this.conn) {
+      this.conn.end();
+      this.conn = null;
+      the_db = null;
+      console.log("Database connection closed.");
     }
+  }
 
-    /**
-     * Sends an SQL query to the database
-     * 
-     * @param {*} query 
-     * @param {*} params 
-     * @returns promise
-     */
-    async send_sql(sql, params = []) {
-        // console.log(sql, params);
-        return this.conn.query(sql, params);
+  async send_sql(sql, params = []) {
+    if (!this.conn) {
+      throw new Error("Database connection not established. Call connect() first.");
     }
+    return this.conn.query(sql, params);
+  }
 
+  async create_tables(query, params = []) {
+    return this.send_sql(query, params);
+  }
 
-    /**
-     * Sends an SQL CREATE TABLES to the database
-     * 
-     * @param {*} query 
-     * @param {*} params 
-     * @returns promise
-     */
-    async create_tables(query, params = []) {
-        return this.send_sql(query, params);
-    }
-
-
-    /**
-     * Executes an SQL INSERT request
-     * 
-     * @param {*} query 
-     * @param {*} params 
-     * @returns The number of rows inserted
-     */
-    async insert_items(query, params = []) {
-        var result = await this.send_sql(query, params);
-
-        return result.affectedRows;
-    }
-};
+  async insert_items(query, params = []) {
+    const [result] = await this.send_sql(query, params);
+    return result.affectedRows;
+  }
+}
 
 /**
- * For mocking
- * 
- * @param {*} db 
+ * For testing/mocking purposes.
  */
 function set_db_connection(db) {
-    the_db = db;
+  the_db = db;
 }
 
 /**
- * Get a connection to the MySQL database
- * 
- * @returns An SQL connection object or mock object
+ * Gets the singleton database connection object.
  */
 function get_db_connection() {
-    if (the_db) {
-        return the_db;
-    }
-    the_db = new RelationalDB();
+  if (the_db) {
     return the_db;
+  }
+  the_db = new RelationalDB();
+  return the_db;
 }
-
-
 
 export {
-    get_db_connection,
-    set_db_connection,
-    RelationalDB
-}
-
+  get_db_connection,
+  set_db_connection,
+  RelationalDB
+};

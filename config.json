@@ -1,5 +1,5 @@
 {
-  "groupId": "our_group_demo_2",
+  "groupId": "our_group_demo_1",
   "bootstrapServers": ["localhost:9092"],
   "topics": ["Bluesky-Kafka","FederatedPosts"],
   "port": 4567

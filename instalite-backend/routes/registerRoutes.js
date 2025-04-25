@@ -21,7 +21,7 @@ import {
     /* ---------- auth & bot ---------- */
     app.post("/auth/login", handleLogin);
     app.post("/auth/register", handleRegister);
-    app.post("/auth/search", handleSearch);
+    app.post("/search", handleSearch);
   
     /* ---------- chat (REST) ---------- */
     app.post("/chat/create", handleCreateChat);
@@ -37,4 +37,3 @@ import {
     app.get("/chat/invites", handleGetInvites);
     app.get("/chat/sessions", handleGetUserChats);
   }
-  

@@ -165,3 +165,4 @@ export async function getUserChats(userId) {
 
   return rows.map(r => ({ chatId: r.chatId, members: JSON.parse(r.chat_members) }));
 }
+
