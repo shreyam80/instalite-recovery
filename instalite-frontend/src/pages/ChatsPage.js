@@ -1,82 +1,129 @@
-import { useEffect, useState } from "react";
-import { createSocket } from "../socket";  // ✅ Correct import!
+/*  src/pages/ChatsPage.js
+    --------------------------------------------------------------
+    – left column  : list of chats
+    – right column : messages + input box for the selected chat
+    – Uses REST  /chat/send  to store ↩︎  and websocket “chatMessage”
+      to receive live updates.
+----------------------------------------------------------------*/
+import { useEffect, useState, useCallback } from 'react';
+import socket from '../socket';
 
 export default function ChatsPage() {
-  const [chats, setChats] = useState([]);
-  const [messages, setMessages] = useState({});
-  const userId = localStorage.getItem("userId");
-  const token = localStorage.getItem("token");
-  const [socket, setSocket] = useState(null);  // ✅ Hold socket instance in state
+  const uid = Number(localStorage.getItem('userId'));
+  const [chats,    setChats]    = useState([]);   // [{chatId,members}]
+  const [history,  setHistory]  = useState({});   // { chatId : [ {senderId,text} ] }
+  const [activeId, setActiveId] = useState(null);
 
-  // ✅ Create socket connection when component mounts
+  /* helper – push one message into state */
+  const addMsg = useCallback((chatId, msg) => {
+    setHistory(prev => ({ ...prev, [chatId]: [...(prev[chatId] || []), msg] }));
+  }, []);
+
+  /* 1️⃣  load all sessions once ------------------------------------------------*/
   useEffect(() => {
-    if (userId && token) {
-      const newSocket = createSocket(userId, token);
-      setSocket(newSocket);
+    (async () => {
+      const raw = await fetch(`http://localhost:3030/chat/sessions?userId=${uid}`)
+                         .then(r => r.json());
 
-      newSocket.on("connect", () => {
-        console.log("Connected to socket:", newSocket.id);
-      });
-
-      return () => {
-        newSocket.disconnect();
-      };
-    }
-  }, [userId, token]);
-
-  // ✅ Fetch all chat sessions on mount AFTER socket is ready
-  useEffect(() => {
-    if (!socket) return;  // 🛑 Wait for socket to be initialized!
-
-    async function fetchChats() {
-      const res = await fetch(`http://localhost:3030/chat/sessions?userId=${userId}`);
-      const sessions = await res.json();
+      const sessions = raw.map(r => ({
+        chatId : r.chatId ?? r.chat_session_id,
+        members: r.members ?? JSON.parse(r.chat_members)
+      }));
       setChats(sessions);
+      if (sessions.length) setActiveId(sessions[0].chatId);
 
-      for (const chat of sessions) {
-        socket.emit("joinChat", chat.chatId);
-        const res = await fetch(`http://localhost:3030/chat/history?chatId=${chat.chatId}`);
-        const history = await res.json();
-        setMessages(prev => ({ ...prev, [chat.chatId]: history }));
+      /* join every room + pull history */
+      for (const c of sessions) {
+        socket.emit('joinChat', c.chatId);
+
+        const h = await fetch(`http://localhost:3030/chat/history?chatId=${c.chatId}`)
+                         .then(r => r.json());
+        setHistory(prev => ({ ...prev, [c.chatId]: h }));
       }
-    }
+    })();
+  }, [uid]);
 
-    fetchChats();
-  }, [userId, socket]);  // ✅ Depends on socket being ready
-
-  // ✅ Listen for incoming messages
+  /* 2️⃣  live websocket feed ---------------------------------------------------*/
   useEffect(() => {
-    if (!socket) return;
+    const handler = msg => addMsg(msg.chatId, msg);
+    socket.on('chatMessage', handler);
+    return () => socket.off('chatMessage', handler);
+  }, [addMsg]);
 
-    const handleMessage = (msg) => {
-      setMessages(prev => {
-        const newMessages = [...(prev[msg.chatId] || []), msg];
-        return { ...prev, [msg.chatId]: newMessages };
-      });
-    };
+  /* ---------------------------------------------------------------------------*/
+  return (
+    <div style={{display:'flex',height:'100%'}}>
+      {/* ▸ left column – chat list */}
+      <aside style={{width:260,borderRight:'1px solid #ddd'}}>
+        {chats.map(c => (
+          <div key={c.chatId}
+               onClick={() => { setActiveId(c.chatId); socket.emit('joinChat', c.chatId); }}
+               style={{
+                 padding:12,cursor:'pointer',
+                 background:c.chatId===activeId ? '#eef' : undefined
+               }}>
+            <strong>Chat {c.chatId}</strong><br/>
+            <small>{c.members.join(', ')}</small>
+          </div>
+        ))}
+      </aside>
 
-    socket.on("chatMessage", handleMessage);
+      {/* ▸ right column – messages */}
+      <main style={{flex:1,padding:24}}>
+        {activeId == null
+          ? <em>Select a chat</em>
+          : <ChatWindow
+              chatId={activeId}
+              msgs={history[activeId] || []}
+              onLocalEcho={msg => addMsg(activeId, msg)}
+            />
+        }
+      </main>
+    </div>
+  );
+}
 
-    return () => {
-      socket.off("chatMessage", handleMessage);
-    };
-  }, [socket]);
+/* ============================================================================
+   ChatWindow  –  message list + input bar
+============================================================================ */
+function ChatWindow({ chatId, msgs, onLocalEcho }) {
+  const uid  = Number(localStorage.getItem('userId'));
+  const [txt, setTxt] = useState('');
+
+  /* send via REST so it’s saved + backend broadcasts */
+  const send = async e => {
+    e.preventDefault();
+    const body = txt.trim();
+    if (!body) return;
+
+    /* optimistic echo */
+    onLocalEcho({ senderId: uid, text: body });
+
+    await fetch('http://localhost:3030/chat/send', {
+      method : 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body   : JSON.stringify({ chatId, userId: uid, message: body })
+    });
+
+    setTxt('');
+  };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Your Chats</h2>
-      {chats.map(chat => (
-        <div key={chat.chatId} style={{ marginBottom: 20 }}>
-          <h4>Chat ID: {chat.chatId}</h4>
-          <ul>
-            {(messages[chat.chatId] || []).map((msg, i) => (
-              <li key={i}>
-                <strong>{msg.senderId}:</strong> {msg.text}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <>
+      <div style={{maxHeight:'60vh',overflowY:'auto',marginBottom:12}}>
+        {msgs.map((m,i)=>(
+          <p key={i} style={{margin:'4px 0'}}>
+            <strong>{m.senderId}:</strong> {m.text}
+          </p>
+        ))}
+      </div>
+
+      <form onSubmit={send}>
+        <input style={{width:'80%'}} value={txt}
+               onChange={e=>setTxt(e.target.value)}
+               placeholder="Type…"/>
+        <button>Send</button>
+      </form>
+    </>
   );
 }

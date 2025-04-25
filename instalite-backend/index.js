@@ -1,33 +1,39 @@
+// instalite-backend/index.js
 import express from 'express';
-import cors from 'cors';
 import http from 'http';
-import { Server } from 'socket.io';
 import registerRoutes from './routes/registerRoutes.js';
-import dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
+import { initSocketServer } from '../server/chat/websocket.js';
+import { createRetrieverFromDatabase } from '../chatbot/vector.js';
+import cors from 'cors';
 
+async function startServer() {
+  const app = express();
 
-const app = express();
-const server = http.createServer(app);  // Combined server for both Express and Socket.IO
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      credentials: true
+    })
+  );
 
-const io = new Server(server, {
-  cors: { origin: 'http://localhost:3000', methods: ['GET', 'POST'] }
-});
+  app.use(express.json());
+  registerRoutes(app);
 
-app.use(cors());
-app.use(express.json());
-registerRoutes(app);
+  // ---------- SOCKET.IO ----------
+  const httpServer = http.createServer(app);
+  initSocketServer(httpServer);          // spin up socket.io on port 3030
+  // --------------------------------
 
-io.on('connection', (socket) => {
-  const { userId } = socket.handshake.query;
-  console.log(`✅ Socket connected! userId=${userId}, socket.id=${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`❌ User ${userId} disconnected.`);
+  await createRetrieverFromDatabase().catch(err => {
+    console.error('Retriever init failed:', err);
+    process.exit(1);
   });
-});
 
-const PORT = 3030;
-server.listen(PORT, () => {
-  console.log(`🚀 Backend + Socket.IO running on port ${PORT}`);
-});
+  const PORT = process.env.PORT || 3030;
+  httpServer.listen(PORT, () => {
+    console.log(`API & Socket.io listening on http://localhost:${PORT}`);
+  });
+}
+
+startServer();

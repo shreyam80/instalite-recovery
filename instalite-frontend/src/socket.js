@@ -1,13 +1,22 @@
-
 // src/socket.js
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-export function createSocket(userId, token) {
+/**
+ * Wrap the actual socket inside a function so we can always
+ * read the freshest userId / token from localStorage.
+ */
+function createSocket() {
+  const userId = localStorage.getItem("userId");
+  const token  = "valid-token"; 
+
   return io("http://localhost:3030", {
     query: { userId, token },
-    reconnection: true,
-    reconnectionAttempts: 2,            // ✅ Only retry twice
-    reconnectionDelay: 500,             // ✅ Wait only 0.5s between retries
-    timeout: 1000                       // ✅ Only wait 1 second for server response
+    // optional: fine–tune reconnection behaviour
+    autoConnect: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 500,
   });
 }
+
+const socket = createSocket();
+export default socket;

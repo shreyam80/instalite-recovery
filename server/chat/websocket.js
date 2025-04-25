@@ -25,7 +25,7 @@ function initSocketServer(httpServer) {
   io.on('connection', (socket) => {
     const userId = socket.handshake.query.userId;
     socketMappings[userId] = socket.id;
-    console.log(`${userId} connected as ${socket.id}`);
+    console.log(`${userId} connected as ${socket.id}`);//debug
     broadcastUserStatus(userId, true);
 
     socket.onAny((event, ...args) => {
@@ -80,7 +80,11 @@ function emitInvite(inviteeId, chatId, inviterName) {
 }
 
 function emitChatMessage(chatId, message) {
-  io.to(chatId).emit('chatMessage', message);
+  if (!io) {
+    console.log(`[SKIP] emitChatMessage skipped, io not initialized`);
+    return;
+  }
+  io.to(chatId).emit('chatMessage', { chatId, ...message });
 }
 
 function joinChat(socket, chatId) {

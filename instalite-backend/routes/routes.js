@@ -1,4 +1,5 @@
-import { authenticateUser, createUser } from '../../users.js';
+// instalite-backend/routes/routes.js
+import { authenticateUser, createUser } from "../../users.js";
 import {
   createChat,
   sendMessage,
@@ -9,16 +10,12 @@ import {
   rescindInvite,
   getChatHistory,
   getInvites,
-  getUserChats
-} from '../../server/chat/chat.js';
+  getUserChats,
+} from "../../server/chat/chat.js";
 import { callChatbot } from '../../chatbot/chatbot.js';
 import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
 
-// ✅ Retriever state (lazy initialization)
-let retrieverInitialized = false;
-
-// ------------------ AUTH ------------------
-
+/* ---------- AUTH ---------- */
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
@@ -26,23 +23,21 @@ export async function handleLogin(req, res) {
 }
 
 export async function handleRegister(req, res) {
-  console.log("Received register POST:", req.body);
   const createResult = await createUser(req.body);
-  console.log("Create result:", createResult);
-  if (createResult.error) return res.status(400).json({ error: createResult.error });
+  if (createResult.error)
+    return res.status(400).json({ error: createResult.error });
 
+  /* auto-login after successful sign-up */
   const loginResult = await authenticateUser({
     login: req.body.login,
     password: req.body.password,
   });
-
-  if (loginResult.error) return res.status(500).json({ error: loginResult.error });
-
+  if (loginResult.error)
+    return res.status(500).json({ error: loginResult.error });
   res.json(loginResult);
 }
 
-// ------------------ CHATBOT SEARCH ------------------
-
+/* ---------- CHATBOT SEARCH (stub) ---------- */
 export async function handleSearch(req, res) {
   const { question } = req.body;
 
@@ -66,64 +61,51 @@ export async function handleSearch(req, res) {
   }
 }
 
-// ------------------ CHATS ------------------
-
+/* ---------- CHAT REST ---------- */
 export async function handleGetUserChats(req, res) {
-  const { userId } = req.query;
-  const result = await getUserChats(userId);
-  res.json(result);
+  const userId = Number(req.query.userId);
+  res.json(await getUserChats(userId));
 }
 
 export async function handleCreateChat(req, res) {
   const { members } = req.body;
-  const result = await createChat(members);
-  res.json(result);
+  res.json(await createChat(members));
 }
 
 export async function handleSendMessage(req, res) {
   const { chatId, userId, message } = req.body;
-  const result = await sendMessage(chatId, userId, message);
-  res.json(result);
+  res.json(await sendMessage(chatId, userId, message));
 }
 
 export async function handleLeaveChat(req, res) {
   const { chatId, userId } = req.body;
-  const result = await leaveChat(chatId, userId);
-  res.json(result);
+  res.json(await leaveChat(chatId, userId));
 }
 
 export async function handleInviteToChat(req, res) {
   const { chatId, inviterId, inviteeId } = req.body;
-  const result = await inviteToChat(chatId, inviterId, inviteeId);
-  res.json(result);
+  res.json(await inviteToChat(chatId, inviterId, inviteeId));
 }
 
 export async function handleAcceptInvite(req, res) {
   const { chatId, userId } = req.body;
-  const result = await acceptChatInvite(chatId, userId);
-  res.json(result);
+  res.json(await acceptChatInvite(chatId, userId));
 }
 
 export async function handleRejectInvite(req, res) {
   const { chatId, userId } = req.body;
-  const result = await rejectChatInvite(chatId, userId);
-  res.json(result);
+  res.json(await rejectChatInvite(chatId, userId));
 }
 
 export async function handleRescindInvite(req, res) {
   const { chatId, inviterId, inviteeId } = req.body;
-  const result = await rescindInvite(chatId, inviterId, inviteeId);
-  res.json(result);
+  res.json(await rescindInvite(chatId, inviterId, inviteeId));
 }
 
 export async function handleGetChatHistory(req, res) {
-  const { chatId } = req.query;
-  const result = await getChatHistory(chatId);
-  res.json(result);
+  res.json(await getChatHistory(req.query.chatId));
 }
 
 export async function handleGetInvites(req, res) {
-  const { userId } = req.query;
-  const result = await getInvites(userId);
-  res.json(result);
+  res.json(await getInvites(req.query.userId));
 }
