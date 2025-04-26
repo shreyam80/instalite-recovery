@@ -1,5 +1,15 @@
 import { get_db_connection } from '../models/rdbms.js';
 import { emitInvite, emitChatMessage } from './websocket.js';
+import * as dotenv from "dotenv";
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+// Get __dirname equivalent in ES modules:
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Resolve the path to your root-level .env:
+dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 const db = get_db_connection();
 await db.connect();
