@@ -13,8 +13,7 @@ function App() {
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
 
-  // Re-check session whenever location changes (after login or logout)
-  useEffect(() => {
+useEffect(() => {
     async function checkSession() {
       try {
         const res = await fetch("http://localhost:3030/session", {
@@ -31,16 +30,36 @@ function App() {
     checkSession();
   }, [location]); // will re-run after navigate()
 
+  /* -------------------------------------------------------------
+   * 2.  Boot the websocket once we know token + userId
+   * ----------------------------------------------------------- */
   useEffect(() => {
+    const token  = "valid-token";                     // whatever backend checks
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      /*  send credentials via QUERY  */
+      socket.io.opts.query = { token, userId };
+      socket.connect();
+    }
     socket.on("connect", () => {
-      console.log("Connected to socket:", socket.id);
+      console.log("WebSocket connected as", socket.id);
     });
-
     return () => {
+      socket.off("connect");
       socket.disconnect();
     };
   }, []);
 
+    useEffect(() => {
+    socket.on("userStatus", data => console.log("userStatus:", data));
+    socket.on("chatInvite", invite => console.log("chatInvite:", invite));
+
+    return () => {
+      socket.off("userStatus");
+      socket.off("chatInvite");
+    };
+  }, []);
+  
   if (isAuthenticated === null) return <p>Loading...</p>;
 
   return (

@@ -85,7 +85,8 @@ export async function handleSearch(req, res) {
     const answer = await callChatbot(question);
     res.json({ answer });
   } catch (err) {
-    console.error(" Chatbot error in handleSearch:", err);
+    
+    console.error("Chatbot error in handleSearch:", err);
     res.status(500).json({ error: "Chatbot failed to process your question" });
   }
 }
