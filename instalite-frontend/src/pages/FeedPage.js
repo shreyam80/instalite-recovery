@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function FeedPage() {
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -21,11 +21,18 @@ export default function FeedPage() {
           return;
         }
 
-        // Step 2: Fetch feed
+        // Step 2: Fetch feed (POST)
         const feedRes = await fetch("http://localhost:3030/feed", {
+          method: "POST",
           credentials: "include",
         });
-        const feedData = await feedRes.json();
+
+        let feedData;
+        try {
+          feedData = await feedRes.json();
+        } catch (e) {
+          throw new Error("Invalid JSON in response. Possible 404 or HTML error page.");
+        }
 
         if (!feedRes.ok) {
           setError(feedData.error || "Failed to load feed");
@@ -60,7 +67,7 @@ export default function FeedPage() {
 
       {!loading && !error && posts.length > 0 && (
         <>
-          <h3>📡 Live Posts:</h3>
+          <h3>Live Posts:</h3>
           {posts.map((post, idx) => (
             <div key={idx} className="postCard">
               <strong>@{post.author}</strong>

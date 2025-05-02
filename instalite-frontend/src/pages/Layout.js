@@ -2,15 +2,15 @@ import { Outlet, useNavigate } from "react-router-dom";
 
 export default function Layout() {
   const navigate = useNavigate();
+
   const handleLogout = async () => {
     await fetch("http://localhost:3030/logout", {
       method: "POST",
       credentials: "include"
     });
     localStorage.clear();
-    navigate("/login");
+    window.location.href = "/login"; // force full reload
   };
-  
 
   return (
     <div>

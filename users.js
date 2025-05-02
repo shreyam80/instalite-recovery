@@ -31,11 +31,21 @@ export async function authenticateUser({ login, password }) {
     if (users.length === 0) return { error: "User not found" };
 
     const user = users[0];
+
+    // Debugging bcrypt comparison
+    console.log("Authenticating user:", login);
+    console.log("Input password:", password);
+    console.log("Stored hash:", user.hashed_password);
+
     const match = await bcrypt.compare(password, user.hashed_password);
+
+    console.log("Password match?", match);
+
     if (!match) return { error: "Invalid password" };
 
     await db.send_sql("UPDATE users SET is_online = TRUE WHERE user_id = ?", [user.user_id]);
     return { success: true, userId: user.user_id, username: user.username, is_online: true };
+
   } catch (err) {
     console.error("authenticateUser error:", err);
     return { error: "Authentication failed" };

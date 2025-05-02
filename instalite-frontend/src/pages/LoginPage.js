@@ -15,6 +15,7 @@ export default function LoginPage() {
       const response = await fetch("http://localhost:3030/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // important for session cookie
         body: JSON.stringify({ login, password }),
       });
 
@@ -25,11 +26,22 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", data.userId);
+      // Explicitly confirm session is active
+      const sessionRes = await fetch("http://localhost:3030/session", {
+        method: "GET",
+        credentials: "include",
+      });
+      const sessionData = await sessionRes.json();
 
-      navigate("/feed");
+      if (sessionData.sessionUser) {
+        localStorage.setItem("userId", sessionData.sessionUser.userId);
+        navigate("/feed");
+      } else {
+        setError("Login succeeded but session not established.");
+      }
+
     } catch (err) {
+      console.error("Login error:", err);
       setError("Something went wrong");
     }
   };
