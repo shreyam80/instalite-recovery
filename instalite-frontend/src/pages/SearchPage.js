@@ -1,10 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SearchPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Check session on mount
+  useEffect(() => {
+    async function checkSession() {
+      const res = await fetch("http://localhost:3030/session", {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!data.sessionUser) {
+        navigate("/login");
+      }
+    }
+    checkSession();
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,8 +29,9 @@ export default function SearchPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3030/auth/search", {
+      const res = await fetch("http://localhost:3030/search", {
         method: "POST",
+        credentials: "include", // ✅ ensure session cookie is sent
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
       });

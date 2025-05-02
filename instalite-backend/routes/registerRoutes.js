@@ -14,14 +14,25 @@ import {
     handleGetChatHistory,
     handleGetInvites,
     handleGetUserChats,
+    handleLogout,
+    handleGetFeed
   } from "./routes.js";
+
+  function requireSessionAuth(req, res, next) {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+    next();
+  }  
   
   /** Mount every HTTP route on the express `app` that gets passed in. */
   export default function registerRoutes(app) {
     /* ---------- auth & bot ---------- */
     app.post("/auth/login", handleLogin);
     app.post("/auth/register", handleRegister);
-    app.post("/search", handleSearch);
+    app.post("/search", requireSessionAuth, handleSearch);
+    app.post("/logout", requireSessionAuth, handleLogout);
+    app.post("/feed", requireSessionAuth, handleGetFeed);
   
     /* ---------- chat (REST) ---------- */
     app.post("/chat/create", handleCreateChat);
@@ -36,4 +47,10 @@ import {
     app.get("/chat/history", handleGetChatHistory);
     app.get("/chat/invites", handleGetInvites);
     app.get("/chat/sessions", handleGetUserChats);
+
+      /* ---------- session check ---------- */
+  app.get("/session", (req, res) => {
+    res.json({ sessionUser: req.session?.user || null });
+  });
+
   }

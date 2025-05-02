@@ -2,7 +2,7 @@ import fs from 'fs';
 import mysql from 'mysql2/promise';
 import process from 'process';
 import dotenv from 'dotenv';
-dotenv.config();  // ✅ Ensure environment variables are loaded
+dotenv.config();  // Ensure environment variables are loaded
 
 // Optional: Load additional config from config.json if needed
 const configFile = fs.readFileSync('config.json', 'utf8');
@@ -23,7 +23,8 @@ class RelationalDB {
       user: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-    };
+      connectTimeout: 5000,
+    };    
 
     console.log('DB_USER:', this.dbconfig.user);
     console.log('DB_PASSWORD:', this.dbconfig.password ? '****' : 'MISSING');
@@ -44,11 +45,13 @@ class RelationalDB {
     }
 
     console.log("New connection request");
+    console.log("Attempting to connect with config:", this.dbconfig);
+
     try {
       this.conn = await mysql.createConnection(this.dbconfig);
-      console.log("✅ Database connection established.");
+      console.log("Database connection established.");
     } catch (err) {
-      console.error("❌ Database connection failed:", err);
+      console.error(" Database connection failed:", err);
       throw err;  // Let the caller handle the error properly
     }
     return this;
