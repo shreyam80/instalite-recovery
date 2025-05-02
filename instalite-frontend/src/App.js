@@ -48,6 +48,12 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/chats" element={<ChatsPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route
+  path="/"
+  element={
+    localStorage.getItem('token') ? <Navigate to="/feed" /> : <Navigate to="/login" />
+  }
+/>
       </Route>
     </Routes>
   );
