@@ -11,9 +11,12 @@ const __dirname = dirname(__filename);
 // Resolve the path to your root-level .env:
 dotenv.config({ path: resolve(__dirname, '../../.env') });
 
-const db = get_db_connection();
-await db.connect();
+let db; // ← defer initialization
 
+export async function initChatModule() {
+  db = get_db_connection();
+  await db.connect();
+}
 // Create a new chat session
 export async function createChat(members) {
   const sortedMembers = [...members].sort();
@@ -156,6 +159,7 @@ export async function getInvites(userId) {
 export async function getUserChats(userId) {
   const db  = get_db_connection();
   const uid = Number(userId);
+  if (!userId || isNaN(uid)) return []; 
 
   const [rows] = await db.send_sql(
     `

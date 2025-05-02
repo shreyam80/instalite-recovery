@@ -46,9 +46,9 @@ class RelationalDB {
     console.log("New connection request");
     try {
       this.conn = await mysql.createConnection(this.dbconfig);
-      console.log("✅ Database connection established.");
+      console.log("Database connection established.");
     } catch (err) {
-      console.error("❌ Database connection failed:", err);
+      console.error(" Database connection failed:", err);
       throw err;  // Let the caller handle the error properly
     }
     return this;

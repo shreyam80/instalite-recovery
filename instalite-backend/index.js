@@ -5,6 +5,9 @@ import registerRoutes from './routes/registerRoutes.js';
 import { initSocketServer } from '../server/chat/websocket.js';
 import { createRetrieverFromDatabase } from '../chatbot/vector.js';
 import cors from 'cors';
+import session from 'express-session';
+import dotenv from 'dotenv';
+dotenv.config(); // ✅ load environment variables
 
 async function startServer() {
   const app = express();
@@ -18,6 +21,16 @@ async function startServer() {
   );
 
   app.use(express.json());
+  app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60
+    }
+  }));  
   registerRoutes(app);
 
   // ---------- SOCKET.IO ----------

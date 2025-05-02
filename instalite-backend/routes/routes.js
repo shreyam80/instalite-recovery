@@ -14,27 +14,56 @@ import {
 } from "../../server/chat/chat.js";
 import { callChatbot } from '../../chatbot/chatbot.js';
 import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
+import { getPostsForUser } from "../../posts.js"; 
 
 /* ---------- AUTH ---------- */
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
-  res.json(result);
+  req.session.user = {
+    userId: result.userId,
+    username: result.username,
+  };
+
+  res.status(200).json({ username: result.username });
 }
 
 export async function handleRegister(req, res) {
-  const createResult = await createUser(req.body);
-  if (createResult.error)
-    return res.status(400).json({ error: createResult.error });
+  try {
+    const createResult = await createUser(req.body);
+    
+    if (createResult.error) {
+      // Handle specific MySQL duplicate errors
+      if (createResult.error.code === 'ER_DUP_ENTRY') {
+        if (createResult.error.sqlMessage.includes('users.email')) {
+          return res.status(400).json({ error: 'Email already registered.' });
+        } else if (createResult.error.sqlMessage.includes('users.username')) {
+          return res.status(400).json({ error: 'Username already taken.' });
+        }
+      }
+      return res.status(400).json({ error: 'Registration failed.' });
+    }
 
-  /* auto-login after successful sign-up */
-  const loginResult = await authenticateUser({
-    login: req.body.login,
-    password: req.body.password,
-  });
-  if (loginResult.error)
-    return res.status(500).json({ error: loginResult.error });
-  res.json(loginResult);
+    // Auto-login
+    const loginResult = await authenticateUser({
+      login: req.body.login,
+      password: req.body.password,
+    });
+
+    if (loginResult.error) {
+      return res.status(500).json({ error: loginResult.error });
+    }
+
+    req.session.user = {
+      userId: loginResult.userId,
+      username: loginResult.username,
+    };
+
+    return res.status(200).json({ username: loginResult.username });
+  } catch (err) {
+    console.error("Registration error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 /* ---------- CHATBOT SEARCH (stub) ---------- */
@@ -56,9 +85,36 @@ export async function handleSearch(req, res) {
     const answer = await callChatbot(question);
     res.json({ answer });
   } catch (err) {
+    
     console.error("Chatbot error in handleSearch:", err);
     res.status(500).json({ error: "Chatbot failed to process your question" });
   }
+}
+
+/* ---------- LOGOUT ---------- */
+export function handleLogout(req, res) {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ error: "Logout failed" });
+    }
+    res.status(200).json({ success: true });
+  });
+}
+
+/* ---------- FEED ---------- */
+export async function handleGetFeed(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const posts = await getPostsForUser(userId);
+  if (posts.error) {
+    return res.status(500).json({ error: posts.error });
+  }
+
+  res.status(200).json(posts);
 }
 
 /* ---------- CHAT REST ---------- */
