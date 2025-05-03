@@ -8,59 +8,61 @@ import java.util.*;
 
 public class Adsorption {
 
-    // Each node has a label vector: Map<userId, probability>
-    public static JavaPairRDD<String, Map<String, Double>> run(
+    // Each node has a label vector: Map<Integer, Double>
+    public static JavaPairRDD<String, Map<Integer, Double>> run(
             JavaSparkContext sc,
             JavaPairRDD<String, Tuple2<String, Double>> edges) {
 
         // Step 1: Initialize label vectors
-        JavaPairRDD<String, Map<String, Double>> labels = initializeLabels(edges);
+        JavaPairRDD<String, Map<Integer, Double>> labels = initializeLabels(edges);
 
         // Step 2: Run up to 15 iterations or until convergence
         for (int i = 0; i < 15; i++) {
-            JavaPairRDD<String, Map<String, Double>> newLabels = propagateLabels(edges, labels);
+            JavaPairRDD<String, Map<Integer, Double>> newLabels = propagateLabels(edges, labels);
             labels = newLabels;
         }
 
         return labels;
     }
 
-    private static JavaPairRDD<String, Map<String, Double>> initializeLabels(
+    private static JavaPairRDD<String, Map<Integer, Double>> initializeLabels(
             JavaPairRDD<String, Tuple2<String, Double>> edges) {
 
         // Users only: each user starts with label = {userId: 1.0}
-        JavaPairRDD<String, Map<String, Double>> initialLabels = edges
+        JavaPairRDD<String, Map<Integer, Double>> initialLabels = edges
                 .keys()
                 .distinct()
                 .filter(id -> id.startsWith("u")) // Only user nodes get labels
                 .mapToPair(id -> {
-                    Map<String, Double> labelVec = new HashMap<>();
-                    labelVec.put(id, 1.0);
+                    Map<Integer, Double> labelVec = new HashMap<>();
+                    // Extract integer user ID from string with "u" prefix
+                    int userId = Integer.parseInt(id.substring(1));
+                    labelVec.put(userId, 1.0);
                     return new Tuple2<>(id, labelVec);
                 });
 
         return initialLabels;
     }
 
-    private static JavaPairRDD<String, Map<String, Double>> propagateLabels(
+    private static JavaPairRDD<String, Map<Integer, Double>> propagateLabels(
             JavaPairRDD<String, Tuple2<String, Double>> edges,
-            JavaPairRDD<String, Map<String, Double>> labels) {
+            JavaPairRDD<String, Map<Integer, Double>> labels) {
 
         // Step 1: Join edges with source labels
-        JavaPairRDD<String, Tuple2<Tuple2<String, Double>, Map<String, Double>>> joined =
+        JavaPairRDD<String, Tuple2<Tuple2<String, Double>, Map<Integer, Double>>> joined =
                 edges.join(labels);
 
         // Step 2: Send labels along each edge
-        JavaPairRDD<String, Map<String, Double>> messages = joined.mapToPair(tuple -> {
+        JavaPairRDD<String, Map<Integer, Double>> messages = joined.mapToPair(tuple -> {
             String src = tuple._1;
             Tuple2<String, Double> edge = tuple._2._1;
-            Map<String, Double> labelVec = tuple._2._2;
+            Map<Integer, Double> labelVec = tuple._2._2;
 
             String dst = edge._1;
             double weight = edge._2;
 
-            Map<String, Double> weightedLabels = new HashMap<>();
-            for (Map.Entry<String, Double> entry : labelVec.entrySet()) {
+            Map<Integer, Double> weightedLabels = new HashMap<>();
+            for (Map.Entry<Integer, Double> entry : labelVec.entrySet()) {
                 weightedLabels.put(entry.getKey(), entry.getValue() * weight);
             }
 
@@ -68,9 +70,9 @@ public class Adsorption {
         });
 
         // Step 3: Aggregate incoming label vectors for each node
-        JavaPairRDD<String, Map<String, Double>> updatedLabels = messages.reduceByKey((map1, map2) -> {
-            Map<String, Double> merged = new HashMap<>(map1);
-            for (Map.Entry<String, Double> entry : map2.entrySet()) {
+        JavaPairRDD<String, Map<Integer, Double>> updatedLabels = messages.reduceByKey((map1, map2) -> {
+            Map<Integer, Double> merged = new HashMap<>(map1);
+            for (Map.Entry<Integer, Double> entry : map2.entrySet()) {
                 merged.merge(entry.getKey(), entry.getValue(), Double::sum);
             }
             return merged;
