@@ -45,11 +45,16 @@ public class DBUtils {
             String user = dbProps.getProperty("user");
             String password = dbProps.getProperty("password");
 
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("MySQL JDBC driver not found in classpath!", e);
+        }
         Connection conn = DriverManager.getConnection(
             "jdbc:mysql://" + host + ":3306/" + db, user, password
         );
 
-            String sql = "INSERT INTO ranked_feed (user_id, post_id, score, timestamp) VALUES (?, ?, ?, NOW())";
+            String sql = "INSERT INTO ranked_feed (user_id, post_id, score, rank) VALUES (?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(sql);
 
             while (iterator.hasNext()) {
@@ -63,6 +68,7 @@ public class DBUtils {
                     stmt.setString(1, entry.getKey());     // user_id
                     stmt.setString(2, nodeId);             // post_id
                     stmt.setDouble(3, entry.getValue());   // score
+                    stmt.setInt(4,0);
                     stmt.executeUpdate();
                 }
             }
