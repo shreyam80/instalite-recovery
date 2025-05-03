@@ -13,7 +13,7 @@ public class GraphBuilder {
         List<Tuple2<String, Tuple2<String, Double>>> edges = new ArrayList<>();
 
         // ----------------------------
-        // Sample edges — REPLACE with DB reads
+        // Sample edges  -- REPLACE with DB reads
         // ----------------------------
         // u1 follows hashtags h1 and h2
         edges.add(new Tuple2<>("u1", new Tuple2<>("h1", 0.15)));

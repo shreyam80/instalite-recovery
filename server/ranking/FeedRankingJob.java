@@ -5,6 +5,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.util.Map;
+import scala.Tuple2;
 
 public class FeedRankingJob {
     public static void main(String[] args) {

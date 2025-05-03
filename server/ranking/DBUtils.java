@@ -37,7 +37,7 @@ public class DBUtils {
     // --- Existing method that writes label results to RDS ---
     public static void writeRankedPostsToMySQL(JavaPairRDD<String, Map<String, Double>> labels) {
         labels.foreachPartition(iterator -> {
-            // 👇 LOAD CREDS FROM .env
+            // LOAD CREDS FROM .env
             Properties dbProps = loadDBCredentialsFromEnv(".env");
 
             String host = dbProps.getProperty("host");
