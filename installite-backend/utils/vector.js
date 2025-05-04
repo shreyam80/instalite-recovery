@@ -71,53 +71,51 @@ export async function getTopFaceMatches(embedding, n = 5) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let retriever = null;
+let reviewRetriever = null;
 
-/**
- * Pulls a small sample of actors/directors/movies from MySQL, chunks it,
- * embeds it with OpenAI, pushes into a Chroma collection, and builds a retriever.
- */
-export async function createRetrieverFromDatabase() {
-  const db = get_db_connection();
-  await db.connect();
-
-  const [rows] = await db.send_sql(`
-    SELECT n.primaryName, p.category, p.job, t.primaryTitle, t.startYear
-    FROM principals p
-    JOIN names n ON p.nconst = n.nconst
-    JOIN titles t ON p.tconst = t.tconst
-    WHERE p.category IN ('actor','actress','director')
-    LIMIT 500;
-  `);
-
-  const textChunks = rows.map(r =>
-    r.category === 'director'
-      ? `${r.primaryName} directed the movie ${r.primaryTitle} (${r.startYear})`
-      : `${r.primaryName} played the role of ${r.job || 'unknown role'} in ${r.primaryTitle} (${r.startYear})`
-  );
-
-  const docs = textChunks.map(t => new Document({ pageContent: t }));
-  const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 300, chunkOverlap: 30 });
-  const splitDocs = await splitter.splitDocuments(docs);
-
+export async function loadRetrievers() {
   const embeddings = new OpenAIEmbeddings({ modelName: "text-embedding-ada-002" });
-  const vectorStore = await Chroma.fromDocuments(splitDocs, embeddings, {
+  const CHROMA_URL = process.env.CHROMA_URL || "http://localhost:8000";
+
+  const actorStore = await Chroma.fromExistingCollection(embeddings, {
     collectionName: "actor_movie_roles",
-    url: process.env.CHROMA_URL || "http://localhost:8000",
+    url: CHROMA_URL,
   });
 
-  retriever = vectorStore.asRetriever();
-  console.log("✅ Chatbot retriever initialized with `actor_movie_roles`.");
+  const reviewStore = await Chroma.fromExistingCollection(embeddings, {
+    collectionName: "movie_reviews",
+    url: CHROMA_URL,
+  });
+
+  retriever = actorStore.asRetriever();
+  reviewRetriever = reviewStore.asRetriever();
+
+  console.log("Loaded retrievers from existing Chroma collections.");
 }
 
-/**
- * Query the LangChain retriever for relevant docs.
- */
 export async function retrieveRelevantDocs(query) {
-  if (!retriever) {
-    throw new Error("Retriever not initialized – call createRetrieverFromDatabase() first.");
+  if (!retriever || !reviewRetriever) {
+    throw new Error("Retrievers not initialized – call `loadRetrievers()` first.");
   }
-  return retriever.getRelevantDocuments(query);
+
+  const [actorDocs, reviewDocs] = await Promise.all([
+    retriever.getRelevantDocuments(query),
+    reviewRetriever.getRelevantDocuments(query)
+  ]);
+
+  return [...actorDocs, ...reviewDocs];
 }
+
+let retrieversInitialized = false;
+
+export async function ensureRetrieversReady() {
+  if (!retrieversInitialized) {
+    console.log("Loading Chroma retrievers...");
+    await loadRetrievers(); // this is fast
+    retrieversInitialized = true;
+  }
+}
+
 
 // // utils/vector.js
 // import { ChromaClient } from 'chromadb'; // must be installed via npm

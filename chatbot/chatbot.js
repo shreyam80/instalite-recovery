@@ -1,8 +1,13 @@
+// chatbot/chatbot.js
 import * as dotenv from "dotenv";
 dotenv.config();
+
 import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { retrieveRelevantDocs, createRetrieverFromDatabase } from "../installite-backend/utils/vector.js";
+import {
+  retrieveRelevantDocs,
+  loadRetrievers
+} from "../installite-backend/utils/vector.js";
 
 const template = `
 Answer the question based on the following context:
@@ -27,24 +32,20 @@ const model = new ChatOpenAI({
 });
 
 export async function callChatbot(query) {
-  try {
-    const docs = await retrieveRelevantDocs(query);
-    const context = docs.map(d => d.pageContent).join("\n\n");
+  const docs = await retrieveRelevantDocs(query);
+  const context = docs.map(d => d.pageContent).join("\n\n");
 
-    const filledPrompt = await prompt.format({ context, question: query });
-    const response = await model.call([{ role: "user", content: filledPrompt }]);
+  const filledPrompt = await prompt.format({ context, question: query });
+  const response = await model.call([{ role: "user", content: filledPrompt }]);
 
-    return response.text;
-  } catch (err) {
-    console.error("Chatbot error:", err);
-    return "Sorry, I had an issue answering your question.";
-  }
+  return response.text;
 }
 
-/*async function testChatbot() {
-  await createRetrieverFromDatabase();
+// Optional: local testing only
+async function testChatbot() {
+  await loadRetrievers();
   const answer = await callChatbot("Who directed Cinderella?");
   console.log("Answer:", answer);
 }
 
-testChatbot();*/
+testChatbot();

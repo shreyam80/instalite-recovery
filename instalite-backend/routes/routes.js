@@ -13,8 +13,9 @@ import {
   getUserChats,
 } from "../../server/chat/chat.js";
 import { callChatbot } from '../../chatbot/chatbot.js';
-import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
 import { getPostsForUser } from "../../posts.js"; 
+import { ensureRetrieversReady, retrieveRelevantDocs } from '../../installite-backend/utils/vector.js';
+let retrieverInitialized = false;
 
 /* ---------- AUTH ---------- */
 export async function handleLogin(req, res) {
@@ -75,17 +76,17 @@ export async function handleSearch(req, res) {
   }
 
   try {
-    // Lazy initialization of the retriever
+    // Lazy init, just once
     if (!retrieverInitialized) {
-      console.log("Initializing chatbot retriever...");
-      await createRetrieverFromDatabase();
+      console.log("Initializing chatbot retrievers...");
+      await ensureRetrieversReady();
       retrieverInitialized = true;
     }
 
-    const answer = await callChatbot(question);
+    const docs = await retrieveRelevantDocs(question);  // retrieve documents from Chroma
+    const answer = await callChatbot(question, docs);   // generate answer using OpenAI + context
     res.json({ answer });
   } catch (err) {
-    
     console.error("Chatbot error in handleSearch:", err);
     res.status(500).json({ error: "Chatbot failed to process your question" });
   }
