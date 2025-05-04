@@ -52,13 +52,14 @@ export default function ChatWindow({ title, messages, userId, onSend }) {
 
           return (
             <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                margin: "8px 0",
-                alignSelf: mine ? "flex-end" : "flex-start"
-              }}
+                key={i}
+                style={{
+                    display: "flex",
+                    alignItems: "center",                       // vertical center
+                    justifyContent: mine ? "flex-end" : "flex-start", // push children left/right
+                    width: "100%",                               // span full width so justifyContent can work
+                    margin: "8px 0"
+                }}
             >
               {/* avatar on left for other users */}
               {!mine && (
