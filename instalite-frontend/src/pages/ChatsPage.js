@@ -25,11 +25,11 @@ const chatLabel = (chat, friends) =>
   chat.name?.trim() || prettyMembers(chat.members, friends);
 
 export default function ChatsPage() {
-  const [chats, setChats] = useState([]);   // [{ chatId, name, members }]
+  const [chats, setChats] = useState([]);    // [{ chatId, name, members }]
   const [history, setHistory] = useState({});// { chatId: [ {senderId,text,senderName} ] }
-  const [active, setActive] = useState(null);// current chatId
-  const [invites, setInvites] = useState([]);// [{ chatId, senderId }]
-  const [friends, setFriends] = useState([]);// [{ userId, firstName, lastName }]
+  const [active, setActive] = useState(null); // current chatId
+  const [invites, setInvites] = useState([]); // [{ chatId, senderId, chatName }]
+  const [friends, setFriends] = useState([]); // [{ userId, firstName, lastName }]
   const joinedRooms = useRef(new Set());
 
   // Fetch chats & histories
@@ -92,7 +92,7 @@ export default function ChatsPage() {
   useEffect(() => {
     chats.forEach(c => {
       if (!joinedRooms.current.has(c.chatId)) {
-        socket.emit("joinChat", c.chatId, () => {});  // callback provided
+        socket.emit("joinChat", c.chatId, () => {});
         joinedRooms.current.add(c.chatId);
       }
     });
@@ -173,7 +173,7 @@ export default function ChatsPage() {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ chatId, userId: uid })
     });
-    socket.emit("joinChat", chatId, () => {});  // callback provided
+    socket.emit("joinChat", chatId, () => {});
     joinedRooms.current.add(chatId);
     loadChats();
     loadInvites();
@@ -214,7 +214,7 @@ export default function ChatsPage() {
     });
     setChats(prev => prev.filter(c => c.chatId !== chatId));
     if (active === chatId) setActive(null);
-    socket.emit("leaveChat", chatId, () => {}); // callback provided
+    socket.emit("leaveChat", chatId, () => {});
   }
 
   // Rename chat
@@ -254,7 +254,7 @@ export default function ChatsPage() {
     // 2) update UI & join socket with callback
     setChats(prev => [...prev, { chatId, members: [uid, otherId], name: null }]);
     setActive(chatId);
-    socket.emit("joinChat", chatId, () => {}); // callback provided
+    socket.emit("joinChat", chatId, () => {});
     joinedRooms.current.add(chatId);
     setHistory(prev => ({ ...prev, [chatId]: [] }));
 
@@ -268,7 +268,7 @@ export default function ChatsPage() {
 
   // Render
   return (
-    <div style={{ display: "flex", height: "100%" }}>
+    <div style={{ display: "flex", height: "70vh" }}>
       <aside style={{ width: 280, borderRight: "1px solid #ddd", padding: 12 }}>
         <section style={{ marginBottom: 24 }}>
           <h3>Invites</h3>
@@ -277,7 +277,11 @@ export default function ChatsPage() {
           ) : (
             invites.map(inv => {
               const chat = chats.find(c => c.chatId === inv.chatId);
-              const label = chat ? chatLabel(chat, friends) : `Chat ${inv.chatId}`;
+              const label = inv.chatName
+                ? inv.chatName
+                : chat
+                  ? chatLabel(chat, friends)
+                  : `Chat ${inv.chatId}`;
               return (
                 <div key={inv.chatId} style={{ marginBottom: 8 }}>
                   <strong>{idToName(friends, inv.senderId)}</strong> invited you to{" "}
@@ -333,13 +337,36 @@ export default function ChatsPage() {
         </section>
       </aside>
 
-      <main style={{ flex: 1, padding: 24 }}>
+      <main
+        style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            padding: 24,
+            minHeight: 0
+        }}
+        >
         {active == null ? (
-          <em>Select a chat or accept an invite</em>
+            <em>Select a chat or accept an invite</em>
         ) : (
-          <ChatWindow chatId={active} messages={history[active] || []} userId={uid} />
+            <div style={{ flex: 1, minHeight: 0 }}>
+            <ChatWindow
+                title={chats.find(c => c.chatId === active)?.name || "Chat"}
+                messages={history[active] || []}
+                userId={uid}
+                onSend={async msg => {
+                       // just call REST — server will broadcast for us
+                       await fetch("http://localhost:3030/chat/send", {
+                         method: "POST",
+                         headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ chatId: active, userId: uid, message: msg })
+                       });
+                    }}
+            />
+            </div>
         )}
-      </main>
+        </main>
+
     </div>
   );
 }

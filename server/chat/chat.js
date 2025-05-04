@@ -169,20 +169,22 @@ export async function getChatHistory(chatId) {
 
 // Get all pending invites for a user
 export async function getInvites(userId) {
-  const [rows] = await db.send_sql(
-    `
-      SELECT 
-        sender_user_id    AS senderId, 
-        recipient_user_id AS recipientId, 
-        chat_session_id   AS chatId, 
-        timestamp 
-      FROM chat_invites 
-      WHERE recipient_user_id = ?
-    `,
-    [userId]
-  );
-  return rows;
-}
+    const [rows] = await db.send_sql(
+      `
+        SELECT
+          CI.sender_user_id    AS senderId,
+          CI.chat_session_id   AS chatId,
+          CS.chat_name         AS chatName,
+          CI.timestamp         AS timestamp
+        FROM chat_invites CI
+        JOIN chat_sessions CS
+          ON CI.chat_session_id = CS.chat_session_id
+        WHERE CI.recipient_user_id = ?
+      `,
+      [userId]
+    );
+    return rows;
+  }
 
 // Rename a chat
 export async function renameChat(chatId, newName) {

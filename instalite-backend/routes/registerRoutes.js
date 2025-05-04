@@ -18,14 +18,17 @@ import {
   handleGetChatHistory,
   handleGetInvites,
   handleGetUserChats,
-  /* ─ friends ─ */
-  handleGetFriends
+  handleGetFriends,
+  handleGetUserImage
 } from "./routes.js";
 
 /**
  * Mount every HTTP route on the Express `app` passed in.
  */
 export default function registerRoutes (app) {
+
+  app.get("/users/:userId/image", handleGetUserImage);
+
   /* -------------------------------------------------------- */
   /*  AUTH & CHATBOT SEARCH                                   */
   /* -------------------------------------------------------- */

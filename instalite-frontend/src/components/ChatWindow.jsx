@@ -1,74 +1,143 @@
+// src/components/ChatWindow.jsx
 import { useState, useRef, useEffect } from "react";
 
-export default function ChatWindow({ chatId, messages, userId }) {
-  const [text,    setText]    = useState("");
-  const bottomRef = useRef(null);
+export default function ChatWindow({ title, messages, userId, onSend }) {
+  const [text, setText] = useState("");
+  const scrollRef = useRef(null);
 
-  // auto-scroll on new messages
+  // auto-scroll new messages into view
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // send through REST; server will broadcast via websocket
+  // handler to send message
   const send = async () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    await fetch("http://localhost:3030/chat/send", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        chatId,
-        userId,
-        message: trimmed
-      })
-    });
+    const msg = text.trim();
+    if (!msg) return;
+    await onSend(msg);
     setText("");
   };
 
   return (
     <div style={{
-      display:       "flex",
+      display: "flex",
       flexDirection: "column",
-      height:        "100%"
+      height: "80vh",
+      minHeight: 0   // allow inner flex to shrink
     }}>
-      {/* ─── Message list ─────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
-        flex:      1,
-        overflowY: "auto",
-        padding:   16
+        padding: "12px 16px",
+        borderBottom: "1px solid #ddd",
+        fontWeight: "bold",
+        background: "#f5f5f5"
       }}>
-        {messages.map((m,i) => (
-          <div key={i} style={{ margin:"4px 0" }}>
-            <span style={{
-              fontWeight: m.senderId === userId ? "bold" : "normal"
-            }}>
-              {m.senderId}:
-            </span>{" "}
-            {m.text}
-          </div>
-        ))}
-        <div ref={bottomRef}/>
+        {title}
       </div>
 
-      {/* ─── Input bar ────────────────────────────────────────── */}
+      {/* Scrollable messages window */}
       <div style={{
-        display:   "flex",
-        borderTop: "1px solid #ddd",
-        padding:   12
+        flex: 1,
+        overflowY: "auto",
+        padding: 16,
+        background: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0
       }}>
-        <input
-          style={{ flex:1, marginRight:8 }}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              send()
-            }
-          }}
-          placeholder="Type a message…"
-        />
-        <button onClick={send}>Send</button>
+        {messages.map((m, i) => {
+          const mine = m.senderId === userId;
+          // build the avatar URL pointing at your redirect route
+          const avatarUrl = `http://localhost:3030/users/${m.senderId}/image`;
+
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                margin: "8px 0",
+                alignSelf: mine ? "flex-end" : "flex-start"
+              }}
+            >
+              {/* avatar on left for other users */}
+              {!mine && (
+                <img
+                  src={avatarUrl}
+                  alt={`${m.senderName}’s avatar`}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    marginRight: 8
+                  }}
+                />
+              )}
+
+              {/* message bubble */}
+              <div style={{
+                maxWidth: "75%",
+                padding: "8px",
+                borderRadius: 4,
+                background: mine ? "#dcf8c6" : "#eee",
+                textAlign: mine ? "right" : "left"
+              }}>
+                <div style={{
+                  fontSize: "0.9em",
+                  marginBottom: 4,
+                  fontWeight: mine ? "bold" : "normal"
+                }}>
+                  {m.senderName}
+                </div>
+                <div>{m.text}</div>
+              </div>
+
+              {/* avatar on right for your own messages */}
+              {mine && (
+                <img
+                  src={avatarUrl}
+                  alt="Your avatar"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    marginLeft: 8
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+        <div ref={scrollRef} />
+      </div>
+
+      {/* Input bar */}
+      <div style={{
+        padding: 12,
+        borderTop: "1px solid #ddd",
+        background: "#f5f5f5"
+      }}>
+        <div style={{ display: "flex" }}>
+          <input
+            style={{
+              flex: 1,
+              marginRight: 8,
+              padding: "8px",
+              borderRadius: 4,
+              border: "1px solid #ccc"
+            }}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Type a message…"
+          />
+          <button onClick={send}>Send</button>
+        </div>
       </div>
     </div>
   );

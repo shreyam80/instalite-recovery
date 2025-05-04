@@ -1,5 +1,5 @@
 // instalite-backend/routes/routes.js
-import { authenticateUser, createUser } from "../../users.js";
+import { authenticateUser, createUser, getUserImageByID } from "../../users.js";
 import { getIO } from "../../server/chat/websocket.js";
 import {
   createChat,
@@ -136,4 +136,10 @@ export async function handleGetChatHistory(req, res) {
 
 export async function handleGetInvites(req, res) {
   res.json(await getInvites(req.query.userId));
+}
+
+export function handleGetUserImage(req, res) {
+  const userId = Number(req.params.userId);
+  const imageUrl = getUserImageByID(userId);
+  res.redirect(imageUrl);
 }
