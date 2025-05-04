@@ -5,6 +5,7 @@ import { getUserById } from "../../users.js";
 import { getPostsByUser, getPostsForUser } from "../../posts.js";
 import { getUserImageByID } from "../../users.js";
 import { getIO } from "../../server/chat/websocket.js";
+import { searchUsersByQuery, searchPostsByQuery } from "../../server/models/rag_helpers.js"; // You’ll create these
 import {
   createChat,
   sendMessage,
@@ -88,7 +89,14 @@ export async function handleSearch(req, res) {
     }
     const docs   = await retrieveRelevantDocs(question);
     const answer = await callChatbot(question, docs);
-    return res.json({ answer });
+
+    const [users, posts] = await Promise.all([
+      searchUsersByQuery(question),
+      searchPostsByQuery(question)
+    ]);
+
+    return res.json({ answer, users, posts });
+
   } catch (err) {
     console.error("Chatbot error:", err);
     return res.status(500).json({ error: "Chatbot failed to process question" });
