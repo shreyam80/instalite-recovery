@@ -6,7 +6,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import {
   retrieveRelevantDocs,
-  loadRetrievers
+  ensureRetrieversReady
 } from "../installite-backend/utils/vector.js";
 
 const template = `
@@ -32,6 +32,8 @@ const model = new ChatOpenAI({
 });
 
 export async function callChatbot(query) {
+  await ensureRetrieversReady();
+
   const docs = await retrieveRelevantDocs(query);
   const context = docs.map(d => d.pageContent).join("\n\n");
 
@@ -43,7 +45,6 @@ export async function callChatbot(query) {
 
 // Optional: local testing only
 async function testChatbot() {
-  await loadRetrievers();
   const answer = await callChatbot("Who directed Cinderella?");
   console.log("Answer:", answer);
 }
