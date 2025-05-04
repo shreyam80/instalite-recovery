@@ -8,6 +8,7 @@ import LoginPage    from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ChatsPage    from "./pages/ChatsPage";
 import SearchPage   from "./pages/SearchPage";
+import ProfilePage  from "./pages/ProfilePage";
 import Layout       from "./pages/Layout";
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
         <Route path="/feed"     element={<FeedPage    />} />
         <Route path="/login"    element={<LoginPage   />} />
         <Route path="/register" element={<RegisterPage/>} />
+        <Route path="/profile"  element={<ProfilePage />} />
         <Route path="/chats"    element={<ChatsPage   />} />
         <Route path="/search"   element={<SearchPage  />} />
       </Route>

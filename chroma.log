@@ -114,3 +114,39 @@
 [32mINFO[0m:     [22-04-2025 16:27:30] 127.0.0.1:39954 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/add HTTP/1.1" 201
 [33mWARNING[0m:  [22-04-2025 16:27:30] Number of requested results 5 is greater than number of elements in index 1, updating n_results = 1
 [32mINFO[0m:     [22-04-2025 16:27:30] 127.0.0.1:39964 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/acb41a4d-2fd8-4fb7-b613-425d5640c1a6/query?limit=5 HTTP/1.1" 200
+[33mWARNING[0m:  [03-05-2025 22:22:07] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [03-05-2025 22:22:07] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component System
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component SqliteDB
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component Posthog
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component LocalExecutor
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component SegmentAPI
+[36mDEBUG[0m:    [03-05-2025 22:22:07] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [03-05-2025 22:22:07] Started server process [[36m16069[0m]
+[32mINFO[0m:     [03-05-2025 22:22:07] Waiting for application startup.
+[32mINFO[0m:     [03-05-2025 22:22:07] Application startup complete.
+[32mINFO[0m:     [03-05-2025 22:22:07] Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [03-05-2025 22:33:48] 127.0.0.1:53832 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 22:33:48] 127.0.0.1:53838 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 22:33:48] 127.0.0.1:53832 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [03-05-2025 22:33:48] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [03-05-2025 22:33:48] 127.0.0.1:53838 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/cd24d9d5-06d3-4593-9aa1-b1c6d2436ff5/upsert HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 22:34:37] 127.0.0.1:45004 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 22:34:37] 127.0.0.1:45010 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [03-05-2025 22:34:37] Collection actor_movie_roles already exists, returning existing collection.
+[32mINFO[0m:     [03-05-2025 22:34:37] 127.0.0.1:45004 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 22:34:38] 127.0.0.1:45010 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/cd24d9d5-06d3-4593-9aa1-b1c6d2436ff5/upsert HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:01:13] 127.0.0.1:53910 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:01:13] 127.0.0.1:53918 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [03-05-2025 23:01:13] Collection actor_movie_roles already exists, returning existing collection.
+[32mINFO[0m:     [03-05-2025 23:01:13] 127.0.0.1:53910 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:01:14] 127.0.0.1:53918 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/cd24d9d5-06d3-4593-9aa1-b1c6d2436ff5/upsert HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:10:50] 127.0.0.1:37928 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:10:50] 127.0.0.1:37932 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [03-05-2025 23:10:50] Collection actor_movie_roles already exists, returning existing collection.
+[32mINFO[0m:     [03-05-2025 23:10:50] 127.0.0.1:37928 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [03-05-2025 23:10:51] 127.0.0.1:37932 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/cd24d9d5-06d3-4593-9aa1-b1c6d2436ff5/upsert HTTP/1.1" 200
