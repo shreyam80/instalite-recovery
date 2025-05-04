@@ -39,7 +39,8 @@ import {
   handleGetFriends,
 
   /* user image redirect */
-  handleGetUserImage
+  handleGetUserImage,
+  handleUserSearch
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -113,6 +114,7 @@ export default function registerRoutes(app) {
       }
     }
   );
+  
 
   /* ---------- CHAT (sessions, messages) ------------------- */
   app.post("/chat/create",       handleCreateChat);
@@ -139,4 +141,6 @@ export default function registerRoutes(app) {
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
   );
+//search functionality
+  app.post("/user/search", handleUserSearch);
 }

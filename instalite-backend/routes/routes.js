@@ -1,14 +1,14 @@
+// instalite-backend/routes/routes.js
+import { authenticateUser, createUser } from "../../users.js";
+import { get_db_connection } from '../../server/models/rdbms.js';
+import { getUserById } from "../../users.js";
+import { getPostsByUser, getPostsForUser } from "../../posts.js";
 // instalite‑backend/routes/routes.js
 import {
-  authenticateUser,
-  createUser,
-  getUserImageByID,
-  getUserById
+  getUserImageByID
 } from "../../users.js";
 
 import { getIO } from "../../server/chat/websocket.js";
-import { get_db_connection } from "../../server/models/rdbms.js";
-
 import {
   createChat,
   sendMessage,
@@ -24,8 +24,6 @@ import {
 } from "../../server/chat/chat.js";
 
 import { getFriendsForUser }  from "../../friends.js";
-import { getPostsByUser, getPostsForUser } from "../../posts.js";
-
 /* ---- chatbot helpers ---- */
 import { callChatbot } from "../../chatbot/chatbot.js";
 import {
@@ -45,7 +43,6 @@ export async function handleLogin(req, res) {
   req.session.user = { userId: result.userId, username: result.username };
   return res.status(200).json({ username: result.username });
 }
-
 export async function handleRegister(req, res) {
   try {
     const createResult = await createUser(req.body);
@@ -255,14 +252,27 @@ export async function handleUserProfile(req, res) {
       [userId]
     );
 
-    return res.status(200).json({
-      username: user.username,
-      followerCount,
-      followingCount,
-      posts,
-    });
+    return res.status(200).json({ username: user.username, followerCount, followingCount, posts });
   } catch (err) {
     console.error("handleUserProfile error:", err);
     return res.status(500).json({ error: "Failed to load user profile" });
   }
 }
+
+export async function handleUserSearch(req, res) {
+  const { query } = req.body;
+  if (!query) return res.status(400).json({ error: "Missing search query" });
+
+  try {
+    const db = await get_db_connection().connect();
+    const [results] = await db.send_sql(
+      `SELECT user_id, username FROM users WHERE username LIKE ? LIMIT 10`,
+      [`%${query}%`]
+    );
+    res.json({ users: results });
+  } catch (err) {
+    console.error("User search failed:", err);
+    res.status(500).json({ error: "Database error searching users" });
+  }
+}
+
