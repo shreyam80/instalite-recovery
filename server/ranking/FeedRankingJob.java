@@ -23,11 +23,22 @@ public class FeedRankingJob {
             long edgeCount = graphEdges.count();
             System.out.println("Total edges in graph: " + edgeCount);
 
+            //DEBUG : Show sample edges
+            graphEdges.take(10).forEach(e ->
+                System.out.println("Edge: " + e._1() + " -> " + e._2()._1() + " (weight " + e._2()._2() + ")")
+            );
+
+
             if (edgeCount > 0) {
                 // 3. Run adsorption algorithm
                 JavaPairRDD<String, Map<Integer, Double>> labelVectors = Adsorption.run(sc, graphEdges);
                 long nodeCount = labelVectors.count();
                 System.out.println("Total nodes with labels: " + nodeCount);
+
+                // DEBUG: Show sample label vectors
+                labelVectors.take(10).forEach(lv -> {
+                    System.out.println("Node: " + lv._1() + " Labels: " + lv._2());
+                });
 
                 // 4. Write top ranked posts to database
                 DBUtils.writeRankedPostsToMySQL(labelVectors);

@@ -52,5 +52,6 @@ import {
   app.get("/session", (req, res) => {
     res.json({ sessionUser: req.session?.user || null });
   });
+  app.post("/post/create", requireSessionAuth, handleCreatePost);
 
   }

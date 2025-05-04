@@ -1,82 +1,80 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import axios from 'axios';
 
-export default function FeedPage() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+const FeedPage = () => {
+  const [showModal, setShowModal] = useState(false);
+  const [textContent, setTextContent] = useState('');
+  const [hashtags, setHashtags] = useState('');
+  const [imageFile, setImageFile] = useState(null);
 
-  useEffect(() => {
-    async function checkSessionAndFetchFeed() {
-      try {
-        // Step 1: Verify session
-        const sessionRes = await fetch("http://localhost:3030/session", {
-          credentials: "include",
-        });
-        const sessionData = await sessionRes.json();
-
-        if (!sessionData.sessionUser) {
-          navigate("/login");
-          return;
-        }
-
-        // Step 2: Fetch feed (POST)
-        const feedRes = await fetch("http://localhost:3030/feed", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        let feedData;
-        try {
-          feedData = await feedRes.json();
-        } catch (e) {
-          throw new Error("Invalid JSON in response. Possible 404 or HTML error page.");
-        }
-
-        if (!feedRes.ok) {
-          setError(feedData.error || "Failed to load feed");
-        } else {
-          setPosts(feedData);
-        }
-      } catch (err) {
-        console.error("Feed fetch error:", err);
-        setError("Could not connect to server");
-      } finally {
-        setLoading(false);
-      }
+  const handlePostSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('text_content', textContent);
+    formData.append('hashtag_text', hashtags);
+    if (imageFile) {
+      formData.append('image', imageFile);
     }
 
-    checkSessionAndFetchFeed();
-  }, [navigate]);
+    try {
+      await axios.post('/post/create', formData);
+      alert('Post created!');
+      setShowModal(false);
+      setTextContent('');
+      setHashtags('');
+      setImageFile(null);
+    } catch (err) {
+      console.error(err);
+      alert('Error creating post.');
+    }
+  };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h2>Welcome to your Feed</h2>
-      <hr />
+    <>
+      {/* Existing feed rendering logic goes here */}
 
-      {loading && <p>Loading posts...</p>}
+      <button onClick={() => setShowModal(true)} style={{
+        position: 'fixed', bottom: 30, right: 30, fontSize: '2rem', padding: '10px 20px',
+      }}>➕</button>
 
-      {!loading && error && (
-        <div style={{ color: "red" }}>{error}</div>
+      {showModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
+          justifyContent: 'center', alignItems: 'center',
+        }}>
+          <div style={{ background: 'white', padding: 20, borderRadius: 8, width: '300px' }}>
+            <h2>Create a Post</h2>
+            <form onSubmit={handlePostSubmit}>
+              <textarea
+                placeholder="What's on your mind?"
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+                style={{ width: '100%' }}
+              />
+              <input
+                type="text"
+                placeholder="Hashtags (comma-separated)"
+                value={hashtags}
+                onChange={(e) => setHashtags(e.target.value)}
+                style={{ width: '100%', marginTop: '10px' }}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files[0])}
+                style={{ marginTop: '10px' }}
+              />
+              <div style={{ marginTop: 10 }}>
+                <button type="submit">Post</button>
+                <button type="button" onClick={() => setShowModal(false)} style={{ marginLeft: 10 }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-
-      {!loading && !error && posts.length === 0 && (
-        <p>No live posts yet.</p>
-      )}
-
-      {!loading && !error && posts.length > 0 && (
-        <>
-          <h3>Live Posts:</h3>
-          {posts.map((post, idx) => (
-            <div key={idx} className="postCard">
-              <strong>@{post.author}</strong>
-              <p>{post.text}</p>
-              <small>{new Date(post.timestamp).toLocaleString()}</small>
-            </div>
-          ))}
-        </>
-      )}
-    </div>
+    </>
   );
-}
+};
+
+export default FeedPage;

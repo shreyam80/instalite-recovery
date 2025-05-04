@@ -165,3 +165,21 @@ export async function handleGetChatHistory(req, res) {
 export async function handleGetInvites(req, res) {
   res.json(await getInvites(req.query.userId));
 }
+export async function handleCreatePost(req, res) {
+  const { text_content, hashtag_text, image_url } = req.body;
+  const author = req.session?.user?.user_id;
+  if (!author) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const timestamp = new Date();
+    const [result] = await db.query(
+      `INSERT INTO posts (author, text_content, hashtag_text, image_url, timestamp, is_external) 
+       VALUES (?, ?, ?, ?, ?, 0)`,
+      [author, text_content, JSON.stringify(hashtag_text || []), image_url || null, timestamp]
+    );
+    res.json({ success: true, post_id: result.insertId });
+  } catch (err) {
+    console.error("Post creation failed:", err);
+    res.status(500).json({ error: 'Database error creating post' });
+  }
+}
