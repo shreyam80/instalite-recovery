@@ -26,7 +26,6 @@ export default function UserPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load profile");
 
-        console.log("User profile response:", data); // 🔍 Debug
         setProfile(data);
       } catch (err) {
         console.error(err);
@@ -50,14 +49,60 @@ export default function UserPage() {
 
       <h3>Your Posts</h3>
       {Array.isArray(posts) && posts.length > 0 ? (
-        posts.map((post) => (
-          <div key={post.postId} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-            <p>{post.text}</p>
-            {post.imageUrl && <img src={post.imageUrl} alt="post" style={{ maxWidth: "100%" }} />}
-            <small>{new Date(post.timestamp).toLocaleString()}</small>
-            <p>Likes: {post.likeCount}</p>
-          </div>
-        ))
+        posts.map((post, idx) => {
+          const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
+
+          return (
+            <div
+              key={idx}
+              style={{
+                border: "1px solid #ccc",
+                padding: "1rem",
+                marginBottom: "1rem",
+                borderRadius: "8px"
+              }}
+            >
+              <p>{post.text}</p>
+
+              {hashtags.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  {hashtags.map((tag, tagIdx) => (
+                    <span
+                      key={tagIdx}
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: "#e0e0e0",
+                        borderRadius: "12px",
+                        padding: "0.2rem 0.6rem",
+                        marginRight: "0.5rem",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      {tag.startsWith("#") ? tag : `#${tag}`}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {post.imageUrl && (
+                <>
+                  <img
+                    src={post.imageUrl}
+                    alt="post"
+                    style={{ maxWidth: "100%", marginTop: "0.5rem" }}
+                  />
+                  <br />
+                </>
+              )}
+
+              <small>{new Date(post.timestamp).toLocaleString()}</small>
+
+              <div style={{ marginTop: "0.3rem", fontSize: "0.85rem" }}>
+                ❤️ {post.likeCount || 0} likes
+              </div>
+            </div>
+          );
+        })
       ) : (
         <p>You haven't posted anything yet.</p>
       )}

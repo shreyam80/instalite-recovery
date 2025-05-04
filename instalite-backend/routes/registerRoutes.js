@@ -4,6 +4,7 @@
 
 import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
+import uploadProfilePicRouter from "./uploadProfilePic.js";
 
 /* ---- handlers re‑exported from routes.js ---- */
 import {
@@ -139,4 +140,6 @@ export default function registerRoutes(app) {
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
   );
+
+  app.use(uploadProfilePicRouter);
 }
