@@ -1,5 +1,6 @@
 // instalite-backend/routes/routes.js
 import { authenticateUser, createUser } from "../../users.js";
+import { getIO } from "../../server/chat/websocket.js";
 import {
   createChat,
   sendMessage,
@@ -11,7 +12,11 @@ import {
   getChatHistory,
   getInvites,
   getUserChats,
+  renameChat,
 } from "../../server/chat/chat.js";
+
+import { getFriendsForUser } from '../../friends.js';
+
 import { callChatbot } from '../../chatbot/chatbot.js';
 import { createRetrieverFromDatabase } from '../../installite-backend/utils/vector.js';
 
@@ -61,15 +66,38 @@ export async function handleSearch(req, res) {
   }
 }
 
+/* ---------- FRIENDS ---------- */
+export async function handleGetFriends(req, res) {
+  const userId = Number(req.query.userId);
+  if (!userId) return res.status(400).json({ error: 'Missing userId' });
+  const friends = await getFriendsForUser(userId);
+  res.json(friends);
+}
+
 /* ---------- CHAT REST ---------- */
 export async function handleGetUserChats(req, res) {
   const userId = Number(req.query.userId);
   res.json(await getUserChats(userId));
 }
 
+// rename chat
+export async function handleRenameChat(req, res) {
+  const chatId = Number(req.params.chatId);
+  const { name } = req.body;
+
+  // 1) update the database
+  await renameChat(chatId, name);
+
+  // 2) immediately broadcast to everyone in that chat room
+  const io = getIO();
+  io.to(String(chatId)).emit('chatRenamed', { chatId, name });
+
+  return res.json({ success: true });
+}
+
 export async function handleCreateChat(req, res) {
-  const { members } = req.body;
-  res.json(await createChat(members));
+  const { members, name = null } = req.body;  // name optional
+  res.json(await createChat(members, name));
 }
 
 export async function handleSendMessage(req, res) {

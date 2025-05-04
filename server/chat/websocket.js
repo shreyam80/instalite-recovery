@@ -69,6 +69,10 @@ function broadcastUserStatus(userId, isOnline) {
   io.emit('userStatus', { userId, isOnline });
 }
 
+function emitChatRenamed(chatId, name) {
+  io?.to(chatId).emit('chatRenamed', { chatId, name });
+}
+
 function emitInvite(inviteeId, chatId, inviterName) {
   const inviteeSocketId = socketMappings[inviteeId];
   if (inviteeSocketId) {
@@ -123,5 +127,6 @@ export {
   joinChat,
   leaveChat,
   cleanupOnDisconnect,
-  getIO
+  getIO,
+  emitChatRenamed
 };

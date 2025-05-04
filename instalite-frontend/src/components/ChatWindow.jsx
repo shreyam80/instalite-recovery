@@ -1,29 +1,47 @@
 import { useState, useRef, useEffect } from "react";
-import socket from "../socket";
 
 export default function ChatWindow({ chatId, messages, userId }) {
-  const [text, setText] = useState("");
+  const [text,    setText]    = useState("");
   const bottomRef = useRef(null);
 
-  /* auto-scroll down */
+  // auto-scroll on new messages
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior:"smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function send() {
+  // send through REST; server will broadcast via websocket
+  const send = async () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    socket.emit("sendMessage", { chatId, message: trimmed }, () => {});
+    await fetch("http://localhost:3030/chat/send", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        chatId,
+        userId,
+        message: trimmed
+      })
+    });
     setText("");
-  }
+  };
 
   return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", height:"100%" }}>
-      {/* message list */}
-      <div style={{ flex:1, overflowY:"auto", padding:16 }}>
-        {messages.map((m) => (
-          <div key={m.message_id ?? Math.random()} style={{ margin:"4px 0" }}>
-            <span style={{ fontWeight: m.senderId === userId ? "bold" : "normal" }}>
+    <div style={{
+      display:       "flex",
+      flexDirection: "column",
+      height:        "100%"
+    }}>
+      {/* ─── Message list ─────────────────────────────────────── */}
+      <div style={{
+        flex:      1,
+        overflowY: "auto",
+        padding:   16
+      }}>
+        {messages.map((m,i) => (
+          <div key={i} style={{ margin:"4px 0" }}>
+            <span style={{
+              fontWeight: m.senderId === userId ? "bold" : "normal"
+            }}>
               {m.senderId}:
             </span>{" "}
             {m.text}
@@ -32,16 +50,25 @@ export default function ChatWindow({ chatId, messages, userId }) {
         <div ref={bottomRef}/>
       </div>
 
-      {/* input box */}
-      <div style={{ display:"flex", padding:12, borderTop:"1px solid #ddd" }}>
+      {/* ─── Input bar ────────────────────────────────────────── */}
+      <div style={{
+        display:   "flex",
+        borderTop: "1px solid #ddd",
+        padding:   12
+      }}>
         <input
-          style={{ flex:1, padding:8 }}
+          style={{ flex:1, marginRight:8 }}
           value={text}
-          onKeyDown={e => e.key==="Enter" && send()}
           onChange={e => setText(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              send()
+            }
+          }}
           placeholder="Type a message…"
         />
-        <button style={{ marginLeft:8 }} onClick={send}>Send</button>
+        <button onClick={send}>Send</button>
       </div>
     </div>
   );
