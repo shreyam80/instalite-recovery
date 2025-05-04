@@ -166,7 +166,7 @@ export async function handleGetChatHistory(req, res) {
 export async function handleGetInvites(req, res) {
   res.json(await getInvites(req.query.userId));
 }
-export async function handleCreatePost(req, res) {
+/*export async function handleCreatePost(req, res) {
   const { text_content, hashtag_text, image_url } = req.body;
   const author = req.session?.user?.user_id;
   if (!author) return res.status(401).json({ error: 'Unauthorized' });
@@ -183,4 +183,4 @@ export async function handleCreatePost(req, res) {
     console.error("Post creation failed:", err);
     res.status(500).json({ error: 'Database error creating post' });
   }
-}
+}*/

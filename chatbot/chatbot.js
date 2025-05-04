@@ -43,10 +43,10 @@ export async function callChatbot(query) {
   return response.text;
 }
 
-// Optional: local testing only
+/* Optional: local testing only
 async function testChatbot() {
   const answer = await callChatbot("Who directed Cinderella?");
   console.log("Answer:", answer);
 }
 
-testChatbot();
+testChatbot();*/
