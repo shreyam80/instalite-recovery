@@ -16,7 +16,8 @@ import {
     handleGetUserChats,
     handleLogout,
     handleGetFeed,
-    handleCreatePost
+    handleCreatePost,
+    handleUserProfile
   } from "./routes.js";
 
   function requireSessionAuth(req, res, next) {
@@ -34,6 +35,7 @@ import {
     app.post("/search", requireSessionAuth, handleSearch);
     app.post("/logout", requireSessionAuth, handleLogout);
     app.post("/feed", requireSessionAuth, handleGetFeed);
+    app.post("/user", requireSessionAuth, handleUserProfile);
   
     /* ---------- chat (REST) ---------- */
     app.post("/chat/create", handleCreateChat);

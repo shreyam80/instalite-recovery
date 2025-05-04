@@ -18,6 +18,7 @@ export default function Layout() {
         <button onClick={() => navigate("/feed")}>Feed</button>
         <button onClick={() => navigate("/search")}>Search</button>
         <button onClick={() => navigate("/chats")}>Chats</button>
+        <button onClick={() => navigate("/user")}>My Profile</button>
         <button onClick={handleLogout}>Logout</button>
       </nav>
       <Outlet />
