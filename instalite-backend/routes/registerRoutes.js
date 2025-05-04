@@ -16,7 +16,8 @@ import {
     handleGetUserChats,
     handleLogout,
     handleGetFeed,
-    handleCreatePost
+    handleCreatePost,
+    handleUserProfile
   } from "./routes.js";
 
   import { get_db_connection } from '../../server/models/rdbms.js';
@@ -41,6 +42,7 @@ import {
     app.post("/search", requireSessionAuth, handleSearch);
     app.post("/logout", requireSessionAuth, handleLogout);
     app.post("/feed", requireSessionAuth, handleGetFeed);
+    app.post("/user", requireSessionAuth, handleUserProfile);
   
     /* ---------- chat (REST) ---------- */
     app.post("/chat/create", handleCreateChat);

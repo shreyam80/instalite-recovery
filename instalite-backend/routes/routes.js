@@ -1,6 +1,9 @@
 // instalite-backend/routes/routes.js
 import { authenticateUser, createUser } from "../../users.js";
 import { get_db_connection } from '../../server/models/rdbms.js';
+import { getUserById } from "../../users.js";
+import { getPostsByUser } from "../../posts.js";
+
 import {
   createChat,
   sendMessage,
@@ -187,6 +190,38 @@ export async function handleCreatePost(req, res) {
   } catch (err) {
     console.error("Post creation failed:", err);
     res.status(500).json({ error: 'Database error creating post' });
+  }
+}
+
+export async function handleUserProfile(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const user = await getUserById(userId);
+    const posts = await getPostsByUser(userId);
+
+    const db = await get_db_connection().connect();
+
+    const [[{ followerCount }]] = await db.send_sql(
+      "SELECT COUNT(*) AS followerCount FROM friends WHERE following = ?",
+      [userId]
+    );
+
+    const [[{ followingCount }]] = await db.send_sql(
+      "SELECT COUNT(*) AS followingCount FROM friends WHERE follower = ?",
+      [userId]
+    );
+
+    return res.status(200).json({
+      username: user.username,
+      followerCount,
+      followingCount,
+      posts,
+    });
+  } catch (err) {
+    console.error("handleUserProfile error:", err);
+    return res.status(500).json({ error: "Failed to load user profile" });
   }
 }
 
