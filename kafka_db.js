@@ -52,14 +52,22 @@ export async function saveKafkaPost(post) {
     ];
 
     // Check if post already exists by external_site_id
+    // Check if a post from the same user with the same text already exists from the same external site
     const [[existingPost]] = await db.send_sql(
-      'SELECT post_id FROM posts WHERE external_site_id = ?',
-      [post.source_site]
+      `
+        SELECT post_id FROM posts
+        WHERE external_site_id = ?
+          AND text_content = ?
+          AND author = ?
+      `,
+      [post.source_site, post.post_text, userId]
     );
+
     if (existingPost) {
-      console.log("🟡 Duplicate post skipped:", post.source_site);
+      console.log("🟡 Duplicate post skipped:", post.source_site, post.post_text);
       return;
     }
+
 
     await db.insert_items(insertPostSql, params);
     console.log('Inserted Kafka post into DB');
