@@ -1,12 +1,53 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const FeedPage = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [textContent, setTextContent] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const navigate = useNavigate();
 
+  // Fetch session and feed on mount
+  useEffect(() => {
+    async function checkSessionAndFetchFeed() {
+      try {
+        const sessionRes = await fetch("http://localhost:3030/session", {
+          credentials: "include",
+        });
+        const sessionData = await sessionRes.json();
+        if (!sessionData.sessionUser) {
+          navigate("/login");
+          return;
+        }
+
+        const feedRes = await fetch("http://localhost:3030/feed", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        const feedData = await feedRes.json();
+        if (!feedRes.ok) {
+          throw new Error(feedData.error || "Failed to load feed");
+        }
+
+        setPosts(feedData);
+      } catch (err) {
+        console.error("Feed fetch error:", err);
+        setError("Could not connect to server");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    checkSessionAndFetchFeed();
+  }, [navigate]);
+
+  // Handle post submission
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -17,26 +58,63 @@ const FeedPage = () => {
     }
 
     try {
-      await axios.post('/post/create', formData);
+      await axios.post('http://localhost:3030/post/create', formData, {
+        withCredentials: true,
+      });
       alert('Post created!');
-      setShowModal(false);
       setTextContent('');
       setHashtags('');
       setImageFile(null);
+      setShowModal(false);
+
+      // Refetch feed after new post
+      setLoading(true);
+      const refreshedFeed = await fetch("http://localhost:3030/feed", {
+        method: "POST",
+        credentials: "include",
+      });
+      const feedData = await refreshedFeed.json();
+      setPosts(feedData);
     } catch (err) {
       console.error(err);
       alert('Error creating post.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      {/* Existing feed rendering logic goes here */}
+    <div style={{ padding: "2rem" }}>
+      <h2>Welcome to your Feed</h2>
+      <hr />
 
+      {loading && <p>Loading posts...</p>}
+      {!loading && error && <div style={{ color: "red" }}>{error}</div>}
+      {!loading && !error && posts.length === 0 && (
+        <p>No live posts yet.</p>
+      )}
+      {!loading && !error && posts.length > 0 && (
+        <>
+          <h3>Live Posts:</h3>
+          {posts.map((post, idx) => (
+            <div key={idx} className="postCard" style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem", borderRadius: "8px" }}>
+              <strong>@{post.author}</strong>
+              <p>{post.text}</p>
+              {post.image_url && (
+                <img src={post.image_url} alt="post" style={{ maxWidth: "100%", marginTop: "0.5rem" }} />
+              )}
+              <small>{new Date(post.timestamp).toLocaleString()}</small>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Floating button */}
       <button onClick={() => setShowModal(true)} style={{
         position: 'fixed', bottom: 30, right: 30, fontSize: '2rem', padding: '10px 20px',
       }}>➕</button>
 
+      {/* Modal */}
       {showModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -73,7 +151,7 @@ const FeedPage = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

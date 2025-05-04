@@ -1,5 +1,6 @@
 // instalite-backend/routes/routes.js
 import { authenticateUser, createUser } from "../../users.js";
+import { get_db_connection } from '../../server/models/rdbms.js';
 import {
   createChat,
   sendMessage,
@@ -166,21 +167,26 @@ export async function handleGetChatHistory(req, res) {
 export async function handleGetInvites(req, res) {
   res.json(await getInvites(req.query.userId));
 }
-/*export async function handleCreatePost(req, res) {
+
+export async function handleCreatePost(req, res) {
   const { text_content, hashtag_text, image_url } = req.body;
-  const author = req.session?.user?.user_id;
+  const author = req.session?.user?.userId;
   if (!author) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
+    const db = await get_db_connection().connect(); //Make sure connection is established
     const timestamp = new Date();
-    const [result] = await db.query(
+
+    const [result] = await db.send_sql(
       `INSERT INTO posts (author, text_content, hashtag_text, image_url, timestamp, is_external) 
        VALUES (?, ?, ?, ?, ?, 0)`,
       [author, text_content, JSON.stringify(hashtag_text || []), image_url || null, timestamp]
     );
+
     res.json({ success: true, post_id: result.insertId });
   } catch (err) {
     console.error("Post creation failed:", err);
     res.status(500).json({ error: 'Database error creating post' });
   }
-}*/
+}
+

@@ -15,7 +15,8 @@ import {
     handleGetInvites,
     handleGetUserChats,
     handleLogout,
-    handleGetFeed
+    handleGetFeed,
+    handleCreatePost
   } from "./routes.js";
 
   function requireSessionAuth(req, res, next) {
@@ -52,6 +53,6 @@ import {
   app.get("/session", (req, res) => {
     res.json({ sessionUser: req.session?.user || null });
   });
-  /*app.post("/post/create", requireSessionAuth, handleCreatePost);*/
+  app.post("/post/create", requireSessionAuth, handleCreatePost);
 
   }
