@@ -1,6 +1,6 @@
 import { get_db_connection } from './server/models/rdbms.js';
-import { producePostEvent } from './server/kafka/producePostEvent.js'; // ✅ Add this line
-
+import { producePostEvent } from './server/kafka/producePostEvent.js';
+import { getCommentsForPosts } from './comments.js';
 
 const db = get_db_connection();
 
@@ -16,7 +16,6 @@ export async function createPost(userId, text, imageUrl = null, hashtags = []) {
       await linkPostToHashtags(postId, hashtags);
     }
 
-    // NEW: Add Kafka logic here, after DB insert, before returning result
     const [userResult] = await db.send_sql(
       "SELECT username FROM users WHERE user_id = ?",
       [userId]
@@ -118,6 +117,19 @@ export async function linkPostToHashtags(postId, hashtags) {
   }
 }
 
+function safeParseJSON(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export async function getPostsForUser(userId) {
   try {
     const [friends] = await db.send_sql(
@@ -140,23 +152,10 @@ export async function getPostsForUser(userId) {
       [userAndFriends]
     );
 
-    // ✅ Log each post’s raw hashtag_text for debugging
-    for (const post of posts) {
-      console.log(`[DEBUG] Raw DB hashtag_text for post ${post.post_id}:`, post.hashtag_text);
-    }
+    if (posts.length === 0) return [];
 
-    function safeParseJSON(value) {
-      if (Array.isArray(value)) return value;       // ✅ already parsed
-      if (typeof value === 'string') {
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    }    
+    const postIds = posts.map((p) => p.post_id);
+    const commentsByPost = await getCommentsForPosts(postIds);
 
     return posts.map((post) => ({
       postId: post.post_id,
@@ -166,7 +165,8 @@ export async function getPostsForUser(userId) {
       author: post.author_username,
       profileImage: post.profile_image_url,
       likeCount: post.likeCount || 0,
-      hashtags: safeParseJSON(post.hashtag_text) // ✅ Correct field
+      hashtags: safeParseJSON(post.hashtag_text),
+      comments: commentsByPost[post.post_id] || []
     }));
   } catch (err) {
     console.error("getPostsForUser error:", err);
@@ -176,8 +176,6 @@ export async function getPostsForUser(userId) {
 
 export async function getPostsByUser(userId) {
   try {
-    const db = get_db_connection();
-
     const [posts] = await db.send_sql(
       `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, 
               p.hashtag_text,
@@ -192,18 +190,10 @@ export async function getPostsByUser(userId) {
       [userId]
     );
 
-    function safeParseJSON(value) {
-      if (Array.isArray(value)) return value;       // ✅ already parsed
-      if (typeof value === 'string') {
-        try {
-          const parsed = JSON.parse(value);
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    }    
+    if (posts.length === 0) return [];
+
+    const postIds = posts.map((p) => p.post_id);
+    const commentsByPost = await getCommentsForPosts(postIds);
 
     return posts.map((post) => ({
       postId: post.post_id,
@@ -213,7 +203,8 @@ export async function getPostsByUser(userId) {
       author: post.author_username,
       profileImage: post.profile_image_url,
       likeCount: post.like_count || 0,
-      hashtags: safeParseJSON(post.hashtag_text), // ✅ Corrected here too
+      hashtags: safeParseJSON(post.hashtag_text),
+      comments: commentsByPost[post.post_id] || []
     }));
   } catch (err) {
     console.error("getPostsByUserId error:", err);

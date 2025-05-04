@@ -10,6 +10,7 @@ const FeedPage = () => {
   const [textContent, setTextContent] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [commentInputs, setCommentInputs] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,6 +80,31 @@ const FeedPage = () => {
     }
   };
 
+  const handleSubmitComment = async (postId) => {
+    const text = commentInputs[postId]?.trim();
+    if (!text) return;
+
+    try {
+      await fetch("http://localhost:3030/post/comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ postId, content: text }),
+      });
+
+      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+
+      const refreshedFeed = await fetch("http://localhost:3030/feed", {
+        method: "POST",
+        credentials: "include",
+      });
+      const feedData = await refreshedFeed.json();
+      setPosts(feedData);
+    } catch (err) {
+      console.error("Comment submission error:", err);
+    }
+  };
+
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Welcome to your Feed</h2>
@@ -93,7 +119,6 @@ const FeedPage = () => {
           <h3>Live Posts:</h3>
           {posts.map((post, idx) => {
             const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
-            console.debug(`[DEBUG] post.hashtags for post ${idx}:`, hashtags);
 
             return (
               <div
@@ -144,6 +169,36 @@ const FeedPage = () => {
                 <div style={{ marginTop: '0.3rem', fontSize: '0.85rem' }}>
                   ❤️ {post.likeCount || 0} likes
                 </div>
+
+                {Array.isArray(post.comments) && post.comments.length > 0 ? (
+                  <div style={{ marginTop: "0.5rem" }}>
+                    {post.comments.map((c, i) => (
+                      <div key={i} style={{ fontSize: "0.85rem", marginTop: "0.2rem" }}>
+                        <strong>@{c.username}</strong>: {c.text}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontStyle: 'italic', fontSize: '0.85rem', marginTop: "0.5rem" }}>
+                    Be the first to comment...
+                  </p>
+                )}
+
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={commentInputs[post.postId] || ""}
+                  onChange={(e) =>
+                    setCommentInputs((prev) => ({
+                      ...prev,
+                      [post.postId]: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSubmitComment(post.postId);
+                  }}
+                  style={{ marginTop: "0.5rem", width: "100%" }}
+                />
               </div>
             );
           })}
