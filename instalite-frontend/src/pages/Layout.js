@@ -19,6 +19,7 @@ export default function Layout() {
         <button onClick={() => navigate("/search")}>Search</button>
         <button onClick={() => navigate("/chats")}>Chats</button>
         <button onClick={() => navigate("/user")}>My Profile</button>
+        <button onClick={() => navigate("/friends")}>Add/Remove Friends</button> {/* ✅ new tab */}
         <button onClick={handleLogout}>Logout</button>
       </nav>
       <Outlet />

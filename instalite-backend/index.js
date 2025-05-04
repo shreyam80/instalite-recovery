@@ -2,12 +2,14 @@
 import express from 'express';
 import http from 'http';
 import registerRoutes from './routes/registerRoutes.js';
+import { initChatModule } from '../server/chat/chat.js'; 
 import { initSocketServer } from '../server/chat/websocket.js';
 import { createRetrieverFromDatabase } from '../chatbot/vector.js';
+import { handleUserSearch } from './routes/routes.js';
 import cors from 'cors';
 import session from 'express-session';
 import dotenv from 'dotenv';
-dotenv.config(); // ✅ load environment variables
+dotenv.config();
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -15,6 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 async function startServer() {
+  await initChatModule();
   const app = express();
 
   app.use(express.static(path.join(__dirname, "public")));

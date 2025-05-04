@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { FaHome, FaSearch, FaPaperPlane } from "react-icons/fa";
+import { FaHome, FaSearch, FaPaperPlane, FaUserFriends } from "react-icons/fa";
 
 export default function Sidebar() {
   const navItems = [
     { icon: <FaHome />, text: "Feed", path: "/feed" },
     { icon: <FaSearch />, text: "Search", path: "/search" },
     { icon: <FaPaperPlane />, text: "Chats", path: "/chats" },
+    { icon: <FaUserFriends />, text: "Add/Remove Friends", path: "/friends" },  // ✅ new tab
   ];
 
   return (
