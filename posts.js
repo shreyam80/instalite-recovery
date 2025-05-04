@@ -156,7 +156,7 @@ export async function getPostsForUser(userId) {
     const userAndFriends = [userId, ...friendIds];
 
     const [posts] = await db.send_sql(
-      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, 
+      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, p.hashtag_text,
               u.username AS author_username, u.profile_image_url,
               COUNT(pl.user_id) AS likeCount
          FROM posts p
@@ -168,6 +168,15 @@ export async function getPostsForUser(userId) {
       [userAndFriends]
     );
 
+    function safeParseJSON(value) {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
     return posts.map((post) => ({
       postId: post.post_id,
       text: post.text_content,
@@ -176,6 +185,7 @@ export async function getPostsForUser(userId) {
       author: post.author_username,
       profileImage: post.profile_image_url,
       likeCount: post.likeCount || 0,
+      hashtags: safeParseJSON(post.hashtags),
     }));
   } catch (err) {
     console.error("getPostsForUser error:", err);

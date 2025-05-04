@@ -36,6 +36,7 @@ const FeedPage = () => {
         }
 
         setPosts(feedData);
+        console.log("Feed data:", feedData);
       } catch (err) {
         console.error("Feed fetch error:", err);
         setError("Could not connect to server");
@@ -47,12 +48,24 @@ const FeedPage = () => {
     checkSessionAndFetchFeed();
   }, [navigate]);
 
+  useEffect(() => {
+    if (posts.length > 0) {
+      console.log("✅ Updated posts state:", posts);
+    }
+  }, [posts]);
+
   // Handle post submission
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('text_content', textContent);
-    formData.append('hashtag_text', hashtags);
+    const tagsArray = hashtags
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+
+    formData.append('hashtag_text', JSON.stringify(tagsArray));
+
     if (imageFile) {
       formData.append('image', imageFile);
     }
@@ -100,12 +113,31 @@ const FeedPage = () => {
             <div key={idx} className="postCard" style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem", borderRadius: "8px" }}>
               <strong>@{post.author}</strong>
               <p>{post.text}</p>
-              {post.image_url && (
-                <img src={post.image_url} alt="post" style={{ maxWidth: "100%", marginTop: "0.5rem" }} />
+
+              {post.hashtags && post.hashtags.length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  {post.hashtags.map((tag, tagIdx) => (
+                    <span key={tagIdx} style={{
+                      display: 'inline-block',
+                      backgroundColor: '#e0e0e0',
+                      borderRadius: '12px',
+                      padding: '0.2rem 0.6rem',
+                      marginRight: '0.5rem',
+                      fontSize: '0.8rem'
+                    }}>
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {post.imageUrl && (
+                <img src={post.imageUrl} alt="post" style={{ maxWidth: "100%", marginTop: "0.5rem" }} />
               )}
               <small>{new Date(post.timestamp).toLocaleString()}</small>
             </div>
           ))}
+
         </>
       )}
 
@@ -132,7 +164,7 @@ const FeedPage = () => {
               />
               <input
                 type="text"
-                placeholder="Hashtags (comma-separated)"
+                placeholder="Enter hashtags separated by commas (e.g. travel,food)"
                 value={hashtags}
                 onChange={(e) => setHashtags(e.target.value)}
                 style={{ width: '100%', marginTop: '10px' }}
