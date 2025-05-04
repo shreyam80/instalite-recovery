@@ -169,9 +169,17 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
       FOREIGN KEY (user_id) REFERENCES users(user_id) \
     );'
   );
+
+  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS reviews ( \
+    review_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
+    review TEXT, \
+    sentiment VARCHAR(10) \
+  );');
+  
   
   return null;
 }
+
 
 console.log('Creating tables');
 

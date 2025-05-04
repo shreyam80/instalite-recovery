@@ -2,9 +2,14 @@ import { Outlet, useNavigate } from "react-router-dom";
 
 export default function Layout() {
   const navigate = useNavigate();
-  const handleLogout = () => {
+
+  const handleLogout = async () => {
+    await fetch("http://localhost:3030/logout", {
+      method: "POST",
+      credentials: "include"
+    });
     localStorage.clear();
-    navigate("/login");
+    window.location.href = "/login"; // force full reload
   };
 
   return (
@@ -13,6 +18,7 @@ export default function Layout() {
         <button onClick={() => navigate("/feed")}>Feed</button>
         <button onClick={() => navigate("/search")}>Search</button>
         <button onClick={() => navigate("/chats")}>Chats</button>
+        <button onClick={() => navigate("/user")}>My Profile</button>
         <button onClick={handleLogout}>Logout</button>
       </nav>
       <Outlet />

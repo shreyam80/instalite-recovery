@@ -1,29 +1,35 @@
-// src/App.js
-import { Routes, Route, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import socket from "./socket";
-
-import FeedPage     from "./pages/FeedPage";
-import LoginPage    from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ChatsPage    from "./pages/ChatsPage";
-import SearchPage   from "./pages/SearchPage";
-import Layout       from "./pages/Layout";
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import FeedPage from './pages/FeedPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import Layout from './pages/Layout';
+import socket from './socket';
+import ChatsPage from './pages/ChatsPage';
+import SearchPage from './pages/SearchPage';
+import UserPage from './pages/UserPage';
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
-  /* -------------------------------------------------------------
-   * 1.  Redirect on first load
-   * ----------------------------------------------------------- */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    navigate(
-      window.location.pathname === "/"
-        ? (token ? "/feed" : "/login")
-        : window.location.pathname
-    );
-  }, [navigate]);
+useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch("http://localhost:3030/session", {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await res.json();
+        setIsAuthenticated(!!data.sessionUser);
+      } catch (err) {
+        console.error("Session check failed:", err);
+        setIsAuthenticated(false);
+      }
+    }
+    checkSession();
+  }, [location]); // will re-run after navigate()
 
   /* -------------------------------------------------------------
    * 2.  Boot the websocket once we know token + userId
@@ -31,27 +37,21 @@ function App() {
   useEffect(() => {
     const token  = "valid-token";                     // whatever backend checks
     const userId = localStorage.getItem("userId");
-
     if (userId) {
       /*  send credentials via QUERY  */
       socket.io.opts.query = { token, userId };
       socket.connect();
     }
-
     socket.on("connect", () => {
       console.log("WebSocket connected as", socket.id);
     });
-
     return () => {
       socket.off("connect");
       socket.disconnect();
     };
   }, []);
 
-  /* -------------------------------------------------------------
-   * 3.  Global listeners (online status, invites, …)
-   * ----------------------------------------------------------- */
-  useEffect(() => {
+    useEffect(() => {
     socket.on("userStatus", data => console.log("userStatus:", data));
     socket.on("chatInvite", invite => console.log("chatInvite:", invite));
 
@@ -60,16 +60,19 @@ function App() {
       socket.off("chatInvite");
     };
   }, []);
+  
+  if (isAuthenticated === null) return <p>Loading...</p>;
 
-  /* ------------------------------------------------------------- */
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/feed"     element={<FeedPage    />} />
-        <Route path="/login"    element={<LoginPage   />} />
-        <Route path="/register" element={<RegisterPage/>} />
-        <Route path="/chats"    element={<ChatsPage   />} />
-        <Route path="/search"   element={<SearchPage  />} />
+        <Route path="/feed" element={isAuthenticated ? <FeedPage /> : <Navigate to="/login" />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/feed" /> : <LoginPage />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/feed" /> : <RegisterPage />} />
+        <Route path="/chats" element={isAuthenticated ? <ChatsPage /> : <Navigate to="/login" />} />
+        <Route path="/search" element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" />} />
+        <Route path="/user" element={isAuthenticated ? <UserPage /> : <Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
       </Route>
     </Routes>
   );

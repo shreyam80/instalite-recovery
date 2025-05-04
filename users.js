@@ -1,8 +1,5 @@
 import { get_db_connection } from './server/models/rdbms.js';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-
-const SECRET_KEY = process.env.JWT_SECRET || "changeme";
 
 export async function createUser({ login, password, firstName, lastName, email, affiliation, hashtags }) {
   try {
@@ -19,7 +16,7 @@ export async function createUser({ login, password, firstName, lastName, email, 
     return { success: true, userId: result.insertId };
   } catch (err) {
     console.error("createUser error:", err);
-    return { error: "User creation failed" };
+    return { error: err };
   }
 }
 
@@ -27,20 +24,28 @@ export async function authenticateUser({ login, password }) {
   try {
     const db = await get_db_connection().connect();
     const [users] = await db.send_sql(
-      "SELECT user_id, hashed_password FROM users WHERE username = ? OR email = ?",
+      "SELECT user_id, username, hashed_password FROM users WHERE username = ? OR email = ?",
       [login, login]
     );
 
     if (users.length === 0) return { error: "User not found" };
 
     const user = users[0];
+
+    // Debugging bcrypt comparison
+    console.log("Authenticating user:", login);
+    console.log("Input password:", password);
+    console.log("Stored hash:", user.hashed_password);
+
     const match = await bcrypt.compare(password, user.hashed_password);
+
+    console.log("Password match?", match);
+
     if (!match) return { error: "Invalid password" };
 
     await db.send_sql("UPDATE users SET is_online = TRUE WHERE user_id = ?", [user.user_id]);
+    return { success: true, userId: user.user_id, username: user.username, is_online: true };
 
-    const token = jwt.sign({ userId: user.user_id }, SECRET_KEY, { expiresIn: "1h" });
-    return { success: true, userId: user.user_id, token, is_online: true };
   } catch (err) {
     console.error("authenticateUser error:", err);
     return { error: "Authentication failed" };

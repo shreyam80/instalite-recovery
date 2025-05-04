@@ -1,48 +1,125 @@
 /* ----------------------------------------------------------- */
 /*  instalite‑backend/routes/registerRoutes.js                 */
 /* ----------------------------------------------------------- */
+
+import multer from "multer";
+const upload = multer({ storage: multer.memoryStorage() });
+
+/* ---- handlers re‑exported from routes.js ---- */
 import {
-  /* ─ auth & search ─ */
+  /* auth & search */
   handleLogin,
   handleRegister,
   handleSearch,
-  /* ─ chat, messages & invites ─ */
+  handleLogout,
+
+  /* feed / profile / posts */
+  handleGetFeed,
+  handleUserProfile,
+  handleCreatePost,
+
+  /* chat core */
   handleCreateChat,
-  handleRenameChat,       // ← NEW
+  handleRenameChat,  // NEW (rename a chat)
   handleSendMessage,
   handleLeaveChat,
+
+  /* chat invites */
   handleInviteToChat,
   handleAcceptInvite,
   handleRejectInvite,
   handleRescindInvite,
+
+  /* chat queries */
   handleGetChatHistory,
   handleGetInvites,
   handleGetUserChats,
+
+  /* friends */
   handleGetFriends,
+
+  /* user image redirect */
   handleGetUserImage
 } from "./routes.js";
 
-/**
- * Mount every HTTP route on the Express `app` passed in.
- */
-export default function registerRoutes (app) {
+/* optional DB helper for raw queries in post upload */
+import { get_db_connection } from "../../server/models/rdbms.js";
 
+/* ---------- session‑auth helper ---------- */
+function requireSessionAuth(req, res, next) {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  next();
+}
+
+/**
+ * Mount every HTTP route on the Express `app`.
+ */
+export default function registerRoutes(app) {
+  /* ---------- USER IMAGE (placeholder / future CDN) ------- */
   app.get("/users/:userId/image", handleGetUserImage);
 
-  /* -------------------------------------------------------- */
-  /*  AUTH & CHATBOT SEARCH                                   */
-  /* -------------------------------------------------------- */
+  /* ---------- AUTH & LOGOUT ------------------------------- */
   app.post("/auth/login",    handleLogin);
   app.post("/auth/register", handleRegister);
-  app.post("/search",        handleSearch);
+  app.post("/logout",        requireSessionAuth, handleLogout);
 
-  /* -------------------------------------------------------- */
-  /*  CHAT (SESSIONS / MESSAGES / INVITES)                    */
-  /* -------------------------------------------------------- */
-  app.post("/chat/create",        handleCreateChat);
-  app.put ("/chat/:chatId/name",  handleRenameChat);   // ← NEW
-  app.post("/chat/send",          handleSendMessage);
-  app.post("/chat/leave",         handleLeaveChat);
+  /* ---------- CHATBOT SEARCH ------------------------------ */
+  app.post("/search", requireSessionAuth, handleSearch);
+
+  /* ---------- FEED & PROFILE ------------------------------ */
+  app.post("/feed",  requireSessionAuth, handleGetFeed);
+  app.post("/user",  requireSessionAuth, handleUserProfile);
+
+  /* ---------- POST CREATION (with optional image) --------- */
+  app.post(
+    "/post/create",
+    requireSessionAuth,
+    upload.single("image"),
+    async (req, res) => {
+      const textContent = req.body.text_content;
+      let   hashtags;
+      try {
+        hashtags = req.body.hashtag_text
+          ? JSON.parse(req.body.hashtag_text)
+          : [];
+        if (!Array.isArray(hashtags)) throw new Error();
+      } catch {
+        return res
+          .status(400)
+          .json({ error: "hashtag_text must be a JSON array of strings" });
+      }
+
+      const user = req.session.user;
+      if (!textContent || !user)
+        return res.status(400).json({ error: "Missing text or session" });
+
+      const imageUrl = req.file ? req.file.originalname : null;
+
+      try {
+        const db = get_db_connection();
+        const ts = new Date();
+        await db.send_sql(
+          `INSERT INTO posts
+             (author, text_content, hashtag_text, image_url, timestamp, is_external)
+           VALUES (?, ?, ?, ?, ?, 0)`,
+          [user.userId, textContent, JSON.stringify(hashtags), imageUrl, ts]
+        );
+        return res.json({ success: true });
+      } catch (err) {
+        console.error("DB insert error:", err);
+        return res.status(500).json({ error: "Failed to create post" });
+      }
+    }
+  );
+
+  /* ---------- CHAT (sessions, messages) ------------------- */
+  app.post("/chat/create",       handleCreateChat);
+  app.put ("/chat/:chatId/name", handleRenameChat);      // rename chat
+
+  app.post("/chat/send",  handleSendMessage);
+  app.post("/chat/leave", handleLeaveChat);
 
   /* invites */
   app.post("/chat/invite",            handleInviteToChat);
@@ -51,12 +128,15 @@ export default function registerRoutes (app) {
   app.post("/chat/invite/rescind",    handleRescindInvite);
 
   /* queries */
-  app.get("/chat/history",   handleGetChatHistory);
-  app.get("/chat/invites",   handleGetInvites);
-  app.get("/chat/sessions",  handleGetUserChats);
+  app.get("/chat/history",  handleGetChatHistory);
+  app.get("/chat/invites",  handleGetInvites);
+  app.get("/chat/sessions", handleGetUserChats);
 
-  /* -------------------------------------------------------- */
-  /*  FRIENDS                                                 */
-  /* -------------------------------------------------------- */
+  /* ---------- FRIENDS ------------------------------------- */
   app.get("/friends", handleGetFriends);
+
+  /* ---------- SESSION DEBUG (optional) -------------------- */
+  app.get("/session", (req, res) =>
+    res.json({ sessionUser: req.session?.user || null })
+  );
 }
