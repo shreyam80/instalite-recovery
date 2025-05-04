@@ -31,7 +31,7 @@
 //     external: true,
 //   };
 
-//   console.log("✅ Sent comment to Kafka:", message);
+//   console.log("Sent comment to Kafka:", message);
 
 //   await producer.send({
 //     topic: "FederatedPosts",
