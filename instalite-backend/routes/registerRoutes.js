@@ -19,6 +19,11 @@ import {
     handleCreatePost
   } from "./routes.js";
 
+  import multer from 'multer';
+  const upload = multer({ storage: multer.memoryStorage() }); // add this at top
+  import db from "./db.js"; // ✅ pull in the MySQL pool
+
+
   function requireSessionAuth(req, res, next) {
     if (!req.session || !req.session.user) {
       return res.status(401).json({ error: "Not logged in" });
@@ -53,6 +58,32 @@ import {
   app.get("/session", (req, res) => {
     res.json({ sessionUser: req.session?.user || null });
   });
-  app.post("/post/create", requireSessionAuth, handleCreatePost);
+  app.post('/post/create', upload.single('image'), async (req, res) => {
+    const textContent = req.body.text_content;
+    const hashtags = req.body.hashtag_text;
+    const user = req.session.user;
+  
+    console.log('Incoming post:', { textContent, hashtags });
+  
+    if (!textContent || !user) {
+      return res.status(400).json({ error: 'Missing text or user session' });
+    }
+  
+    const imageUrl = req.file ? req.file.originalname : null;
+
+  
+    try {
+      console.log("Session user object:", req.session.user);
+      await db.query(`
+        INSERT INTO posts (author, text_content, image_url, timestamp)
+        VALUES (?, ?, ?, NOW())
+      `, [user.userId, textContent, imageUrl]);
+  
+      res.status(200).json({ message: 'Post created successfully' });
+    } catch (err) {
+      console.error('DB insert error:', err);
+      res.status(500).json({ error: 'Failed to create post' });
+    }
+  });
 
   }
