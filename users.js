@@ -128,3 +128,7 @@ export async function getTopHashtags(userId) {
     return [];
   }
 }
+
+export function getUserImageByID(userId) {
+  return '/placeholder_profile_picture.png';
+}

@@ -78,18 +78,23 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS chat_sessions ( \
     chat_session_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
     creation_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
-    chat_members TEXT \
+    chat_members TEXT, \
+    chat_name VARCHAR(255) DEFAULT NULL \
   );");
 
-  await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS chat_messages ( \
-    message_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
-    chat_session_id INT, \
-    user_id INT, \
-    text_content TEXT, \
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
-    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions(chat_session_id), \
-    FOREIGN KEY (user_id) REFERENCES users(user_id) \
-  );");
+  await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS chat_messages (
+    message_id       INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    chat_session_id  INT NOT NULL,
+    user_id          INT NOT NULL,
+    text_content     TEXT,
+    timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (chat_session_id)
+      REFERENCES chat_sessions(chat_session_id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (user_id)
+      REFERENCES users(user_id)
+      ON DELETE CASCADE
+  );`);
 
   await dbaccess.create_tables("CREATE TABLE IF NOT EXISTS comments ( \
     comment_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
@@ -103,16 +108,22 @@ await dbaccess.create_tables("SET FOREIGN_KEY_CHECKS = 1;");
     FOREIGN KEY (parent_comment_id) REFERENCES comments(comment_id) \
   );");
 
-  await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS chat_invites ( \
-    invite_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, \
-    sender_user_id INT, \
-    recipient_user_id INT, \
-    chat_session_id INT, \
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \
-    FOREIGN KEY (sender_user_id) REFERENCES users(user_id), \
-    FOREIGN KEY (recipient_user_id) REFERENCES users(user_id), \
-    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions(chat_session_id) \
-  );');
+  await dbaccess.create_tables(`CREATE TABLE IF NOT EXISTS chat_invites (
+    invite_id         INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    sender_user_id    INT NOT NULL,
+    recipient_user_id INT NOT NULL,
+    chat_session_id   INT NOT NULL,
+    timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_user_id)
+      REFERENCES users(user_id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (recipient_user_id)
+      REFERENCES users(user_id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (chat_session_id)
+      REFERENCES chat_sessions(chat_session_id)
+      ON DELETE CASCADE
+  );`);
 
   await dbaccess.create_tables('CREATE TABLE IF NOT EXISTS names ( \
     nconst VARCHAR(255), \
