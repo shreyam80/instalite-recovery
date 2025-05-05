@@ -32,7 +32,7 @@ import {
   renameChat,
 } from "../../server/chat/chat.js";
 
-import { getFriendsForUser }  from "../../friends.js";
+import { getMutualsForUser } from "../../friends.js";
 import { getPostsByUser, getPostsForUser } from "../../posts.js";
 
 /* ---- chatbot helpers ---- */
@@ -227,14 +227,25 @@ export async function handleSearch(req, res) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  FRIENDS                                                             */
+/*  MUTUALS                                                           */
 /* ------------------------------------------------------------------ */
-export async function handleGetFriends(req, res) {
+
+/**
+ * GET /mutuals?userId=…
+ * Returns only those users who both follow you and are followed by you.
+ */
+export async function handleGetMutuals(req, res) {
   const userId = Number(req.query.userId);
   if (!userId) return res.status(400).json({ error: "Missing userId" });
-  const friends = await getFriendsForUser(userId);
-  return res.json(friends);
+  try {
+    const mutuals = await getMutualsForUser(userId);
+    return res.json(mutuals);
+  } catch (err) {
+    console.error("Failed to load mutuals:", err);
+    return res.status(500).json({ error: "Database error fetching mutuals" });
+  }
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  FEED                                                                */
@@ -315,13 +326,108 @@ export async function handleGetInvites(req, res) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  USER IMAGE (placeholder redirect)                                  */
+/*  USER IMAGE (placeholder redirect)                                 */
 /* ------------------------------------------------------------------ */
 export function handleGetUserImage(req, res) {
   const userId = Number(req.params.userId);
   const imageUrl = getUserImageByID(userId);     // returns /public/placeholder_profile_picture.png
   return res.redirect(imageUrl);
 }
+
+/* ------------------------------------------------------------------ */
+/*  USER SEARCH + ADD FOLLOW                                          */
+/* ------------------------------------------------------------------ */
+
+export async function handleFollowUser(req, res) {
+  const { userId, followeeId } = req.body;
+  if (!userId || !followeeId) {
+    return res.status(400).json({ error: "Missing userId or followeeId" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `INSERT INTO friends (follower, following)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE follower = follower`,  // idempotent
+      [userId, followeeId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Follow user failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+/**
+ * DELETE /users/follow?userId=…&followeeId=…
+ * Removes an existing follow relationship.
+ */
+export async function handleUnfollowUser(req, res) {
+  const userId     = Number(req.query.userId);
+  const followeeId = Number(req.query.followeeId);
+  if (!userId || !followeeId) {
+    return res.status(400).json({ error: "Missing userId or followeeId" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `DELETE FROM friends
+         WHERE follower  = ?
+           AND following = ?`,
+      [userId, followeeId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Unfollow user failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+
+/**
+ * GET /users/search?q=…
+ * Search users by firstName, lastName, or username,
+ * excluding the current user, and indicate follow status.
+ */
+export async function handleSearchUsers(req, res) {
+  const userId = Number(req.query.userId);
+  const q      = req.query.q?.trim() || "";
+  if (!userId || !q) {
+    return res.status(400).json({ error: "Missing userId or query" });
+  }
+
+  const db   = get_db_connection();
+  const like = `%${q}%`;
+  try {
+    const [rows] = await db.send_sql(
+      `SELECT
+         u.user_id    AS userId,
+         u.first_name AS firstName,
+         u.last_name  AS lastName,
+         u.username   AS username,
+         EXISTS(
+           SELECT 1 FROM friends f
+            WHERE f.follower  = ?
+              AND f.following = u.user_id
+         )            AS following
+       FROM users u
+       WHERE (u.first_name LIKE ?
+           OR u.last_name  LIKE ?
+           OR u.username   LIKE ?)
+         AND u.user_id <> ?
+       ORDER BY following DESC, u.first_name, u.last_name
+       LIMIT 50`,
+      [userId, like, like, like, userId]
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error("User search failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
 
 /* ------------------------------------------------------------------ */
 /*  POSTS                                                               */
@@ -384,4 +490,19 @@ export async function handleUserProfile(req, res) {
   }
 }
 
-
+/**
+ * GET /users/:userId
+ * Returns { userId, username, firstName, lastName } for that user.
+ */
+export async function handleGetUserById(req, res) {
+  const id = Number(req.params.userId);
+  if (!id) return res.status(400).json({ error: "Invalid userId" });
+  const u = await getUserById(id);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  return res.json({
+    userId:   u.user_id,
+    username: u.username,
+    firstName: u.first_name,
+    lastName:  u.last_name,
+  });
+}

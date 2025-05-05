@@ -35,15 +35,21 @@ import {
   handleGetInvites,
   handleGetUserChats,
 
-  /* friends */
-  handleGetFriends,
+  /* mutuals/users */
+  handleGetMutuals,
+  handleGetUserById,
 
   /* user image redirect */
   handleGetUserImage,
 
   /* settings */
   handleGetSettings,
-  handleUpdateSettings
+  handleUpdateSettings,
+
+  /* user search/follow */
+  handleSearchUsers,
+  handleFollowUser,
+  handleUnfollowUser
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -136,9 +142,10 @@ export default function registerRoutes(app) {
   app.get("/chat/invites",  handleGetInvites);
   app.get("/chat/sessions", handleGetUserChats);
 
-  /* ---------- FRIENDS ------------------------------------- */
-  app.get("/friends", handleGetFriends);
-
+  /* ---------- MUTUALS ------------------------------------- */
+  app.get("/mutuals", handleGetMutuals);
+  app.get("/users/:userId", handleGetUserById);
+  
   /* ---------- SESSION DEBUG (optional) -------------------- */
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
@@ -147,4 +154,13 @@ export default function registerRoutes(app) {
   /* ---------- settings -------------------- */
   app.post("/settings", requireSessionAuth, handleUpdateSettings);
   app.get(  "/settings", requireSessionAuth, handleGetSettings);
+
+
+  /* ---------- search user/add follow -------------------- */
+  // user‐search
+  app.get("/users/search", requireSessionAuth, handleSearchUsers);
+
+  // follow action
+  app.post("/users/follow", requireSessionAuth, handleFollowUser);
+  app.delete("/users/follow", requireSessionAuth, handleUnfollowUser);
 }
