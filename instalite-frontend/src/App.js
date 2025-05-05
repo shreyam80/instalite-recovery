@@ -9,6 +9,7 @@ import ChatsPage from './pages/ChatsPage';
 import SearchPage from './pages/SearchPage';
 import UserPage from './pages/UserPage';
 import FriendsPage from "./pages/FriendsPage"; // Make sure this file exists later
+import ProfilePage  from "./pages/ProfilePage";
 import SettingsPage from './pages/SettingsPage';
 import UserSearchPage from "./pages/UserSearchPage";
 
@@ -72,6 +73,7 @@ useEffect(() => {
         <Route path="/feed" element={isAuthenticated ? <FeedPage /> : <Navigate to="/login" />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/feed" /> : <LoginPage />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/feed" /> : <RegisterPage />} />
+        <Route path="/profile"  element={<ProfilePage />} />
         <Route path="/chats" element={isAuthenticated ? <ChatsPage /> : <Navigate to="/login" />} />
         <Route path="/search" element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" />} />
         <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
