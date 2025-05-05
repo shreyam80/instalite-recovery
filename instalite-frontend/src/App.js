@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import FeedPage from './pages/FeedPage';
@@ -9,6 +10,20 @@ import ChatsPage from './pages/ChatsPage';
 import SearchPage from './pages/SearchPage';
 import UserPage from './pages/UserPage';
 import FriendsPage from "./pages/FriendsPage"; // Make sure this file exists later
+=======
+// src/App.js
+import { Routes, Route, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import socket from "./socket";
+
+import FeedPage     from "./pages/FeedPage";
+import LoginPage    from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ChatsPage    from "./pages/ChatsPage";
+import SearchPage   from "./pages/SearchPage";
+import ProfilePage  from "./pages/ProfilePage";
+import Layout       from "./pages/Layout";
+>>>>>>> image-upload-matching
 
 function App() {
   const navigate = useNavigate();
@@ -67,6 +82,7 @@ useEffect(() => {
   return (
     <Routes>
       <Route element={<Layout />}>
+<<<<<<< HEAD
         <Route path="/feed" element={isAuthenticated ? <FeedPage /> : <Navigate to="/login" />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/feed" /> : <LoginPage />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/feed" /> : <RegisterPage />} />
@@ -75,6 +91,14 @@ useEffect(() => {
         <Route path="/user" element={isAuthenticated ? <UserPage /> : <Navigate to="/login" />} />
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
+=======
+        <Route path="/feed"     element={<FeedPage    />} />
+        <Route path="/login"    element={<LoginPage   />} />
+        <Route path="/register" element={<RegisterPage/>} />
+        <Route path="/profile"  element={<ProfilePage />} />
+        <Route path="/chats"    element={<ChatsPage   />} />
+        <Route path="/search"   element={<SearchPage  />} />
+>>>>>>> image-upload-matching
       </Route>
     </Routes>
   );
