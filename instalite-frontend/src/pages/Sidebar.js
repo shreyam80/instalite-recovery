@@ -6,6 +6,7 @@ export default function Sidebar() {
     { icon: <FaHome />, text: "Feed", path: "/feed" },
     { icon: <FaSearch />, text: "Search", path: "/search" },
     { icon: <FaPaperPlane />, text: "Chats", path: "/chats" },
+    { icon: <FaUserFriends />, text: "Add/Remove Friends", path: "/friends" },  // ✅ new tab
   ];
 
   return (

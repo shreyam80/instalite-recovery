@@ -49,7 +49,8 @@ import {
   /* user search/follow */
   handleSearchUsers,
   handleFollowUser,
-  handleUnfollowUser
+  handleUnfollowUser,
+  handlePostComment
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -123,6 +124,8 @@ export default function registerRoutes(app) {
       }
     }
   );
+
+  app.post("/post/comment", requireSessionAuth, handlePostComment);
 
   /* ---------- CHAT (sessions, messages) ------------------- */
   app.post("/chat/create",       handleCreateChat);

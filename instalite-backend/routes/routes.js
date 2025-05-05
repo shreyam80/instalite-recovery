@@ -16,6 +16,7 @@ import {
 import bcrypt from "bcrypt";
 
 import { getIO } from "../../server/chat/websocket.js";
+import { searchUsersByQuery, searchPostsByQuery } from "../../server/models/rag_helpers.js"; 
 import { get_db_connection } from "../../server/models/rdbms.js";
 
 import {
@@ -210,7 +211,6 @@ export function handleLogout(req, res) {
 export async function handleSearch(req, res) {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: "No question provided" });
-
   try {
     if (!retrieverInitialized) {
       console.log("Initializing chatbot retrievers…");
@@ -219,7 +219,14 @@ export async function handleSearch(req, res) {
     }
     const docs   = await retrieveRelevantDocs(question);
     const answer = await callChatbot(question, docs);
-    return res.json({ answer });
+
+    const [users, posts] = await Promise.all([
+      searchUsersByQuery(question),
+      searchPostsByQuery(question)
+    ]);
+
+    return res.json({ answer, users, posts });
+
   } catch (err) {
     console.error("Chatbot error:", err);
     return res.status(500).json({ error: "Chatbot failed to process question" });
@@ -505,4 +512,43 @@ export async function handleGetUserById(req, res) {
     firstName: u.first_name,
     lastName:  u.last_name,
   });
+}
+
+export async function handleUserSearch(req, res) {
+  const { query } = req.body;
+  if (!query) return res.status(400).json({ error: "Missing search query" });
+
+  try {
+    const db = await get_db_connection().connect();
+    const [results] = await db.send_sql(
+      `SELECT user_id, username FROM users WHERE username LIKE ? LIMIT 10`,
+      [`%${query}%`]
+    );
+    res.json({ users: results });
+  } catch (err) {
+    console.error("User search failed:", err);
+    res.status(500).json({ error: "Database error searching users" });
+  }
+}
+
+export async function handlePostComment(req, res) {
+  const userId = req.session?.user?.userId;
+  const { postId, content } = req.body;
+
+  if (!userId || !postId || !content) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `INSERT INTO comments (post_id, user_id, text_content)
+       VALUES (?, ?, ?)`,
+      [postId, userId, content]
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("handlePostComment error:", err);
+    return res.status(500).json({ error: "Failed to submit comment" });
+  }
 }

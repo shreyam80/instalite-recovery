@@ -10,8 +10,8 @@ export default function RegisterPage() {
     lastName: "",
     birthday: "",
     affiliation: "",
-    profile_image_url: "",   // still a string
-    hashtag_text: ""         // ← string, not array
+    profile_image_url: "",
+    hashtag_text: ""
   });
 
   const [error, setError] = useState("");
@@ -48,7 +48,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-<<<<<<< HEAD
     const warnings = validatePassword(formData.password);
     const allValid = Object.values(warnings).every(Boolean);
     if (!allValid) {
@@ -56,16 +55,11 @@ export default function RegisterPage() {
       return;
     }
 
-=======
-    // split on commas (ignoring empty strings)
-    const hashtags =
-      formData.hashtag_text
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
+    const hashtags = formData.hashtag_text
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
 
-    // build the body, drop profile_image_url if empty
->>>>>>> image-upload-matching
     const body = {
       login: formData.login,
       password: formData.password,
@@ -76,6 +70,7 @@ export default function RegisterPage() {
       birthday: formData.birthday,
       hashtags
     };
+
     if (formData.profile_image_url.trim()) {
       body.profileImageUrl = formData.profile_image_url.trim();
     }
@@ -107,27 +102,16 @@ export default function RegisterPage() {
     <div className="auth-form">
       <h2>Register</h2>
       <form onSubmit={handleRegister}>
-<<<<<<< HEAD
-        <input name="login" placeholder="Username" onChange={handleChange} required />
-        
+        <input name="login" placeholder="Username" value={formData.login} onChange={handleChange} required />
+
         <p style={{ fontSize: "0.9rem", marginTop: "1rem" }}>
           <strong>Password Requirements:</strong> Must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character.
         </p>
-=======
-        <input
-          name="login"
-          placeholder="Username"
-          value={formData.login}
-          onChange={handleChange}
-          required
-        />
-
->>>>>>> image-upload-matching
         <input
           type="password"
           name="password"
           placeholder="Password"
-<<<<<<< HEAD
+          value={formData.password}
           onChange={handleChange}
           required
         />
@@ -149,74 +133,14 @@ export default function RegisterPage() {
           </li>
         </ul>
 
-        <input name="email" placeholder="Email" onChange={handleChange} required />
-        <input name="firstName" placeholder="First Name" onChange={handleChange} required />
-        <input name="lastName" placeholder="Last Name" onChange={handleChange} required />
-        <input name="birthday" placeholder="Birthday" onChange={handleChange} required />
-        <input name="affiliation" placeholder="Affiliation" onChange={handleChange} />
-        <input name="profile_image_url" placeholder="Profile Image URL" onChange={handleChange} />
-        <input name="hashtag_text" placeholder="Hashtags (comma-separated)" onChange={handleChange} />
-=======
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
+        <input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+        <input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+        <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+        <input type="date" name="birthday" placeholder="Birthday" value={formData.birthday} onChange={handleChange} required />
+        <input name="affiliation" placeholder="Affiliation" value={formData.affiliation} onChange={handleChange} />
+        <input name="profile_image_url" placeholder="Profile Image URL (optional)" value={formData.profile_image_url} onChange={handleChange} />
+        <input name="hashtag_text" placeholder="Hashtags (comma-separated)" value={formData.hashtag_text} onChange={handleChange} />
 
-        <input
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          name="firstName"
-          placeholder="First Name"
-          value={formData.firstName}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          name="lastName"
-          placeholder="Last Name"
-          value={formData.lastName}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          type="date"
-          name="birthday"
-          placeholder="Birthday"
-          value={formData.birthday}
-          onChange={handleChange}
-          required
-        />
-
-        <input
-          name="affiliation"
-          placeholder="Affiliation"
-          value={formData.affiliation}
-          onChange={handleChange}
-        />
-
-        <input
-          name="profile_image_url"
-          placeholder="Profile Image URL (optional)"
-          value={formData.profile_image_url}
-          onChange={handleChange}
-        />
-
-        <input
-          name="hashtag_text"
-          placeholder="Hashtags (comma-separated)"
-          value={formData.hashtag_text}
-          onChange={handleChange}
-        />
-
->>>>>>> image-upload-matching
         {error && <div className="error">{error}</div>}
 
         <button type="submit">Register</button>

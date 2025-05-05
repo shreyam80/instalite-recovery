@@ -4,7 +4,8 @@ import http from 'http';
 import registerRoutes from './routes/registerRoutes.js';
 import { initChatModule } from '../server/chat/chat.js'; 
 import { initSocketServer } from '../server/chat/websocket.js';
-import { createRetrieverFromDatabase } from '../chatbot/vector.js';
+import { ensureRetrieversReady } from '../installite-backend/utils/vector.js';
+
 import cors from 'cors';
 import session from 'express-session';
 import dotenv from 'dotenv';
@@ -47,10 +48,10 @@ async function startServer() {
   initSocketServer(httpServer);          // spin up socket.io on port 3030
   // --------------------------------
 
-  await createRetrieverFromDatabase().catch(err => {
-    console.error('Retriever init failed:', err);
+  await ensureRetrieversReady().catch(err => {
+    console.error('Failed to load retrievers:', err);
     process.exit(1);
-  });
+  });  
 
   const PORT = process.env.PORT || 3030;
   httpServer.listen(PORT, () => {
