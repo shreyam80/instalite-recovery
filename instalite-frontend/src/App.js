@@ -8,6 +8,7 @@ import socket from './socket';
 import ChatsPage from './pages/ChatsPage';
 import SearchPage from './pages/SearchPage';
 import UserPage from './pages/UserPage';
+import FriendsPage from "./pages/FriendsPage"; // Make sure this file exists later
 import SettingsPage from './pages/SettingsPage';
 import UserSearchPage from "./pages/UserSearchPage";
 
