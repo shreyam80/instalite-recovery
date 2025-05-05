@@ -25,10 +25,11 @@ export async function initChatModule() {
 /* ------------------------------------------------------------------ */
 /*  CREATE CHAT                                                        */
 /* ------------------------------------------------------------------ */
-export async function createChat(members) {
-  const sortedMembers = [...members].sort();
-  const memberString  = JSON.stringify(sortedMembers);
+export async function createChat([inviterId]) {
+  // only the inviter goes in
+  const memberString = JSON.stringify([inviterId]);
 
+  // check for an existing 1‑person session
   const [existing] = await db.send_sql(
     "SELECT chat_session_id FROM chat_sessions WHERE chat_members = ?",
     [memberString]
@@ -37,12 +38,14 @@ export async function createChat(members) {
     return { chatId: existing[0].chat_session_id, success: true };
   }
 
+  // create a brand‑new one with only you in it
   const [result] = await db.send_sql(
     "INSERT INTO chat_sessions (chat_members) VALUES (?)",
     [memberString]
   );
   return { chatId: result.insertId, success: true };
 }
+
 
 /* ------------------------------------------------------------------ */
 /*  SEND MESSAGE                                                       */
@@ -87,13 +90,36 @@ export async function leaveChat(chatId, userId) {
 /*  INVITES                                                            */
 /* ------------------------------------------------------------------ */
 export async function inviteToChat(chatId, inviterId, inviteeId) {
+  // ── 1) ensure that user actually exists
+  const [userRows] = await db.send_sql(
+    'SELECT 1 FROM users WHERE user_id = ?',
+    [inviteeId]
+  );
+  if (userRows.length === 0) {
+    return { error: 'Invitee not found' };
+  }
+
+  // ── 2) ensure either inviter follows invitee OR vice‑versa
+  const [relRows] = await db.send_sql(
+    `SELECT 1
+       FROM friends
+      WHERE (follower = ? AND following = ?)
+         OR (follower = ? AND following = ?)`,
+    [inviterId, inviteeId, inviteeId, inviterId]
+  );
+  if (relRows.length === 0) {
+    return { error: 'Can only invite users you follow or who follow you' };
+  }
+
+  // ── 3) now do the invite
   await db.send_sql(
-    "INSERT INTO chat_invites (sender_user_id, recipient_user_id, chat_session_id) VALUES (?, ?, ?)",
+    'INSERT INTO chat_invites (sender_user_id, recipient_user_id, chat_session_id) VALUES (?, ?, ?)',
     [inviterId, inviteeId, chatId]
   );
   emitInvite(inviteeId, chatId, inviterId);
   return { success: true };
 }
+
 
 export async function acceptChatInvite(chatId, userId) {
   const [pending] = await db.send_sql(
@@ -141,20 +167,25 @@ export async function rescindInvite(chatId, inviterId, inviteeId) {
 /* ------------------------------------------------------------------ */
 /*  HISTORY & INVITES QUERIES                                          */
 /* ------------------------------------------------------------------ */
+
+// server/chat/chat.js
 export async function getChatHistory(chatId) {
   const [rows] = await db.send_sql(
     `SELECT
-       message_id,
-       user_id      AS senderId,
-       text_content AS text,
-       timestamp
-     FROM chat_messages
-     WHERE chat_session_id = ?
-     ORDER BY timestamp ASC`,
+       cm.message_id,
+       cm.user_id        AS senderId,
+       u.username        AS senderUsername,
+       cm.text_content   AS text,
+       cm.timestamp
+     FROM chat_messages cm
+     JOIN users u ON u.user_id = cm.user_id
+     WHERE cm.chat_session_id = ?
+     ORDER BY cm.timestamp ASC`,
     [chatId]
   );
   return rows;
 }
+
 
 export async function getInvites(userId) {
   const [rows] = await db.send_sql(

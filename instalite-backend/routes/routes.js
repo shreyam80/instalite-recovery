@@ -1,11 +1,23 @@
-// instalite-backend/routes/routes.js
-import { authenticateUser, createUser } from "../../users.js";
-import { get_db_connection } from '../../server/models/rdbms.js';
-import { getUserById } from "../../users.js";
-import { getPostsByUser, getPostsForUser } from "../../posts.js";
-import { getUserImageByID } from "../../users.js";
+// instalite‑backend/routes/routes.js
+import {
+  authenticateUser,
+  createUser,
+  getUserImageByID,
+  getUserById,
+  updateFirstName,
+  updateLastName,
+  updateUsername,
+  updateUserEmail,
+  updateAffiliation,
+  updateBirthday,
+  updateHashtags,
+  updateUserPassword
+} from "../../users.js";
+import bcrypt from "bcrypt";
+
 import { getIO } from "../../server/chat/websocket.js";
-import { searchUsersByQuery, searchPostsByQuery } from "../../server/models/rag_helpers.js"; // You’ll create these
+import { get_db_connection } from "../../server/models/rdbms.js";
+
 import {
   createChat,
   sendMessage,
@@ -19,7 +31,11 @@ import {
   getUserChats,
   renameChat,
 } from "../../server/chat/chat.js";
-import { getFriendsForUser }  from "../../friends.js";
+
+import { getMutualsForUser } from "../../friends.js";
+import { getPostsByUser, getPostsForUser } from "../../posts.js";
+
+/* ---- chatbot helpers ---- */
 import { callChatbot } from "../../chatbot/chatbot.js";
 import {
   ensureRetrieversReady,
@@ -28,9 +44,116 @@ import {
 
 let retrieverInitialized = false;
 
+/* ------------------------------------------------------------------ */
+/*  Settings                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /settings
+ * Returns the current user’s editable profile fields.
+ */
+export async function handleGetSettings(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  const u = await getUserById(userId);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  return res.json({
+    firstName:   u.first_name,
+    lastName:    u.last_name,
+    username:    u.username,
+    email:       u.email,
+    affiliation: u.affiliation,
+    birthday:    u.birthday,
+    hashtags:    JSON.parse(u.hashtag_text || "[]")
+  });
+}
+
+
+/**
+ * POST /settings
+ * Updates any subset of the user’s editable fields.
+ */
+export async function handleUpdateSettings(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const {
+    firstName, lastName,
+    username,   email,
+    affiliation, birthday,
+    hashtags,
+    oldPassword, newPassword
+  } = req.body;
+
+  const errors = [];
+
+  // 1) If anything is changing, require & verify oldPassword
+  const changingProfile =
+    firstName || lastName || username ||
+    email || affiliation || birthday ||
+    (hashtags && hashtags.length > 0);
+  const changingPassword = Boolean(newPassword);
+
+  if (changingProfile || changingPassword) {
+    if (!oldPassword) {
+      return res.status(400)
+        .json({ errors: ["Current password is required to update settings"] });
+    }
+    const userRec = await getUserById(userId);
+    const ok = await bcrypt.compare(oldPassword, userRec.hashed_password);
+    if (!ok) {
+      return res.status(400)
+        .json({ errors: ["Current password is incorrect"] });
+    }
+  }
+
+  // 2) Apply profile updates
+  if (firstName   !== undefined) await updateFirstName(userId, firstName);
+  if (lastName    !== undefined) await updateLastName(userId, lastName);
+  if (username    !== undefined) {
+    const r = await updateUsername(userId, username);
+    if (r.error) errors.push(r.error);
+  }
+  if (email       !== undefined) {
+    const r = await updateUserEmail(userId, email);
+    if (r.error) errors.push(r.error);
+  }
+  if (affiliation !== undefined) await updateAffiliation(userId, affiliation);
+  if (birthday    !== undefined) {
+    const r = await updateBirthday(userId, birthday);
+    if (r.error) errors.push(r.error);
+  }
+  if (hashtags    !== undefined) {
+    if (!Array.isArray(hashtags)) {
+      errors.push("Hashtags must be an array of strings");
+    } else {
+      const r = await updateHashtags(userId, hashtags);
+      if (r.error) errors.push(r.error);
+    }
+  }
+
+  // 3) Finally handle password rotation
+  if (changingPassword) {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const r = await updateUserPassword(userId, hashed);
+    if (r.error) errors.push(r.error);
+  }
+
+  if (errors.length) {
+    return res.status(400).json({ errors });
+  }
+  return res.json({ success: true });
+}
+
+
+
+/* ------------------------------------------------------------------ */
+/*  AUTH                                                               */
+/* ------------------------------------------------------------------ */
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
+
   req.session.user = { userId: result.userId, username: result.username };
   return res.status(200).json({ username: result.username });
 }
@@ -68,6 +191,9 @@ export async function handleRegister(req, res) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  LOGOUT                                                              */
+/* ------------------------------------------------------------------ */
 export function handleLogout(req, res) {
   req.session.destroy(err => {
     if (err) {
@@ -78,9 +204,13 @@ export function handleLogout(req, res) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/*  CHATBOT SEARCH (stub)                                               */
+/* ------------------------------------------------------------------ */
 export async function handleSearch(req, res) {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: "No question provided" });
+
   try {
     if (!retrieverInitialized) {
       console.log("Initializing chatbot retrievers…");
@@ -89,30 +219,41 @@ export async function handleSearch(req, res) {
     }
     const docs   = await retrieveRelevantDocs(question);
     const answer = await callChatbot(question, docs);
-
-    const [users, posts] = await Promise.all([
-      searchUsersByQuery(question),
-      searchPostsByQuery(question)
-    ]);
-
-    return res.json({ answer, users, posts });
-
+    return res.json({ answer });
   } catch (err) {
     console.error("Chatbot error:", err);
     return res.status(500).json({ error: "Chatbot failed to process question" });
   }
 }
 
-export async function handleGetFriends(req, res) {
+/* ------------------------------------------------------------------ */
+/*  MUTUALS                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /mutuals?userId=…
+ * Returns only those users who both follow you and are followed by you.
+ */
+export async function handleGetMutuals(req, res) {
   const userId = Number(req.query.userId);
   if (!userId) return res.status(400).json({ error: "Missing userId" });
-  const friends = await getFriendsForUser(userId);
-  return res.json(friends);
+  try {
+    const mutuals = await getMutualsForUser(userId);
+    return res.json(mutuals);
+  } catch (err) {
+    console.error("Failed to load mutuals:", err);
+    return res.status(500).json({ error: "Database error fetching mutuals" });
+  }
 }
 
+
+/* ------------------------------------------------------------------ */
+/*  FEED                                                                */
+/* ------------------------------------------------------------------ */
 export async function handleGetFeed(req, res) {
   const userId = req.session?.user?.userId;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
   const posts = await getPostsForUser(userId);
   if (posts.error) {
     return res.status(500).json({ error: posts.error });
@@ -120,6 +261,9 @@ export async function handleGetFeed(req, res) {
   return res.status(200).json(posts);
 }
 
+/* ------------------------------------------------------------------ */
+/*  CHAT REST ENDPOINTS                                                 */
+/* ------------------------------------------------------------------ */
 export async function handleGetUserChats(req, res) {
   const userId = Number(req.query.userId);
   return res.json(await getUserChats(userId));
@@ -150,8 +294,13 @@ export async function handleLeaveChat(req, res) {
 
 export async function handleInviteToChat(req, res) {
   const { chatId, inviterId, inviteeId } = req.body;
-  return res.json(await inviteToChat(chatId, inviterId, inviteeId));
+  const result = await inviteToChat(chatId, inviterId, inviteeId);
+  if (result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+  return res.json(result);
 }
+
 
 export async function handleAcceptInvite(req, res) {
   const { chatId, userId } = req.body;
@@ -176,12 +325,113 @@ export async function handleGetInvites(req, res) {
   return res.json(await getInvites(req.query.userId));
 }
 
+/* ------------------------------------------------------------------ */
+/*  USER IMAGE (placeholder redirect)                                 */
+/* ------------------------------------------------------------------ */
 export function handleGetUserImage(req, res) {
   const userId = Number(req.params.userId);
-  const imageUrl = getUserImageByID(userId);
+  const imageUrl = getUserImageByID(userId);     // returns /public/placeholder_profile_picture.png
   return res.redirect(imageUrl);
 }
 
+/* ------------------------------------------------------------------ */
+/*  USER SEARCH + ADD FOLLOW                                          */
+/* ------------------------------------------------------------------ */
+
+export async function handleFollowUser(req, res) {
+  const { userId, followeeId } = req.body;
+  if (!userId || !followeeId) {
+    return res.status(400).json({ error: "Missing userId or followeeId" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `INSERT INTO friends (follower, following)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE follower = follower`,  // idempotent
+      [userId, followeeId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Follow user failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+/**
+ * DELETE /users/follow?userId=…&followeeId=…
+ * Removes an existing follow relationship.
+ */
+export async function handleUnfollowUser(req, res) {
+  const userId     = Number(req.query.userId);
+  const followeeId = Number(req.query.followeeId);
+  if (!userId || !followeeId) {
+    return res.status(400).json({ error: "Missing userId or followeeId" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `DELETE FROM friends
+         WHERE follower  = ?
+           AND following = ?`,
+      [userId, followeeId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Unfollow user failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+
+/**
+ * GET /users/search?q=…
+ * Search users by firstName, lastName, or username,
+ * excluding the current user, and indicate follow status.
+ */
+export async function handleSearchUsers(req, res) {
+  const userId = Number(req.query.userId);
+  const q      = req.query.q?.trim() || "";
+  if (!userId || !q) {
+    return res.status(400).json({ error: "Missing userId or query" });
+  }
+
+  const db   = get_db_connection();
+  const like = `%${q}%`;
+  try {
+    const [rows] = await db.send_sql(
+      `SELECT
+         u.user_id    AS userId,
+         u.first_name AS firstName,
+         u.last_name  AS lastName,
+         u.username   AS username,
+         EXISTS(
+           SELECT 1 FROM friends f
+            WHERE f.follower  = ?
+              AND f.following = u.user_id
+         )            AS following
+       FROM users u
+       WHERE (u.first_name LIKE ?
+           OR u.last_name  LIKE ?
+           OR u.username   LIKE ?)
+         AND u.user_id <> ?
+       ORDER BY following DESC, u.first_name, u.last_name
+       LIMIT 50`,
+      [userId, like, like, like, userId]
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error("User search failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+
+/* ------------------------------------------------------------------ */
+/*  POSTS                                                               */
+/* ------------------------------------------------------------------ */
 export async function handleCreatePost(req, res) {
   const { text_content, hashtag_text, image_url } = req.body;
   const author = req.session?.user?.userId;
@@ -190,11 +440,18 @@ export async function handleCreatePost(req, res) {
   try {
     const db = get_db_connection();
     const ts = new Date();
+
     const [result] = await db.send_sql(
       `INSERT INTO posts
          (author, text_content, hashtag_text, image_url, timestamp, is_external)
        VALUES (?, ?, ?, ?, ?, 0)`,
-      [author, text_content, JSON.stringify(hashtag_text || []), image_url || null, ts]
+      [
+        author,
+        text_content,
+        JSON.stringify(hashtag_text || []),
+        image_url || null,
+        ts
+      ]
     );
     return res.json({ success: true, post_id: result.insertId });
   } catch (err) {
@@ -210,6 +467,7 @@ export async function handleUserProfile(req, res) {
   try {
     const user  = await getUserById(userId);
     const posts = await getPostsByUser(userId);
+
     const db = get_db_connection();
     const [[{ followerCount }]] = await db.send_sql(
       "SELECT COUNT(*) AS followerCount FROM friends WHERE following = ?",
@@ -219,48 +477,32 @@ export async function handleUserProfile(req, res) {
       "SELECT COUNT(*) AS followingCount FROM friends WHERE follower = ?",
       [userId]
     );
-    return res.status(200).json({ username: user.username, followerCount, followingCount, posts });
+
+    return res.status(200).json({
+      username: user.username,
+      followerCount,
+      followingCount,
+      posts,
+    });
   } catch (err) {
     console.error("handleUserProfile error:", err);
     return res.status(500).json({ error: "Failed to load user profile" });
   }
 }
 
-export async function handleUserSearch(req, res) {
-  const { query } = req.body;
-  if (!query) return res.status(400).json({ error: "Missing search query" });
-
-  try {
-    const db = await get_db_connection().connect();
-    const [results] = await db.send_sql(
-      `SELECT user_id, username FROM users WHERE username LIKE ? LIMIT 10`,
-      [`%${query}%`]
-    );
-    res.json({ users: results });
-  } catch (err) {
-    console.error("User search failed:", err);
-    res.status(500).json({ error: "Database error searching users" });
-  }
-}
-
-export async function handlePostComment(req, res) {
-  const userId = req.session?.user?.userId;
-  const { postId, content } = req.body;
-
-  if (!userId || !postId || !content) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  try {
-    const db = get_db_connection();
-    await db.send_sql(
-      `INSERT INTO comments (post_id, user_id, text_content)
-       VALUES (?, ?, ?)`,
-      [postId, userId, content]
-    );
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    console.error("handlePostComment error:", err);
-    return res.status(500).json({ error: "Failed to submit comment" });
-  }
+/**
+ * GET /users/:userId
+ * Returns { userId, username, firstName, lastName } for that user.
+ */
+export async function handleGetUserById(req, res) {
+  const id = Number(req.params.userId);
+  if (!id) return res.status(400).json({ error: "Invalid userId" });
+  const u = await getUserById(id);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  return res.json({
+    userId:   u.user_id,
+    username: u.username,
+    firstName: u.first_name,
+    lastName:  u.last_name,
+  });
 }

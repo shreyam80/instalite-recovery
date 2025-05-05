@@ -4,7 +4,6 @@
 
 import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
-import uploadProfilePicRouter from "./uploadProfilePic.js";
 
 /* ---- handlers re‑exported from routes.js ---- */
 import {
@@ -18,11 +17,10 @@ import {
   handleGetFeed,
   handleUserProfile,
   handleCreatePost,
-  handlePostComment,
 
   /* chat core */
   handleCreateChat,
-  handleRenameChat,
+  handleRenameChat,  // NEW (rename a chat)
   handleSendMessage,
   handleLeaveChat,
 
@@ -37,11 +35,21 @@ import {
   handleGetInvites,
   handleGetUserChats,
 
-  /* friends */
-  handleGetFriends,
+  /* mutuals/users */
+  handleGetMutuals,
+  handleGetUserById,
 
   /* user image redirect */
-  handleGetUserImage
+  handleGetUserImage,
+
+  /* settings */
+  handleGetSettings,
+  handleUpdateSettings,
+
+  /* user search/follow */
+  handleSearchUsers,
+  handleFollowUser,
+  handleUnfollowUser
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -59,17 +67,22 @@ function requireSessionAuth(req, res, next) {
  * Mount every HTTP route on the Express `app`.
  */
 export default function registerRoutes(app) {
+  /* ---------- USER IMAGE (placeholder / future CDN) ------- */
   app.get("/users/:userId/image", handleGetUserImage);
 
+  /* ---------- AUTH & LOGOUT ------------------------------- */
   app.post("/auth/login",    handleLogin);
   app.post("/auth/register", handleRegister);
   app.post("/logout",        requireSessionAuth, handleLogout);
 
+  /* ---------- CHATBOT SEARCH ------------------------------ */
   app.post("/search", requireSessionAuth, handleSearch);
 
+  /* ---------- FEED & PROFILE ------------------------------ */
   app.post("/feed",  requireSessionAuth, handleGetFeed);
   app.post("/user",  requireSessionAuth, handleUserProfile);
 
+  /* ---------- POST CREATION (with optional image) --------- */
   app.post(
     "/post/create",
     requireSessionAuth,
@@ -111,27 +124,43 @@ export default function registerRoutes(app) {
     }
   );
 
-  app.post("/post/comment", requireSessionAuth, handlePostComment);
-
+  /* ---------- CHAT (sessions, messages) ------------------- */
   app.post("/chat/create",       handleCreateChat);
-  app.put ("/chat/:chatId/name", handleRenameChat);
+  app.put ("/chat/:chatId/name", handleRenameChat);      // rename chat
+
   app.post("/chat/send",  handleSendMessage);
   app.post("/chat/leave", handleLeaveChat);
 
+  /* invites */
   app.post("/chat/invite",            handleInviteToChat);
   app.post("/chat/invite/accept",     handleAcceptInvite);
   app.post("/chat/invite/reject",     handleRejectInvite);
   app.post("/chat/invite/rescind",    handleRescindInvite);
 
+  /* queries */
   app.get("/chat/history",  handleGetChatHistory);
   app.get("/chat/invites",  handleGetInvites);
   app.get("/chat/sessions", handleGetUserChats);
 
-  app.get("/friends", handleGetFriends);
-
+  /* ---------- MUTUALS ------------------------------------- */
+  app.get("/mutuals", handleGetMutuals);
+  app.get("/users/:userId", handleGetUserById);
+  
+  /* ---------- SESSION DEBUG (optional) -------------------- */
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
   );
 
-  app.use(uploadProfilePicRouter);
+  /* ---------- settings -------------------- */
+  app.post("/settings", requireSessionAuth, handleUpdateSettings);
+  app.get(  "/settings", requireSessionAuth, handleGetSettings);
+
+
+  /* ---------- search user/add follow -------------------- */
+  // user‐search
+  app.get("/users/search", requireSessionAuth, handleSearchUsers);
+
+  // follow action
+  app.post("/users/follow", requireSessionAuth, handleFollowUser);
+  app.delete("/users/follow", requireSessionAuth, handleUnfollowUser);
 }

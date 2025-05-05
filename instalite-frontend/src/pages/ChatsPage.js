@@ -3,52 +3,56 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import socket from "../socket";
 import ChatWindow from "../components/ChatWindow";
 
-// Helpers
 const uid = Number(localStorage.getItem("userId"));
-// Make normalizeMembers safe on undefined
+
+// Helpers
 const normalizeMembers = (arr = []) =>
   [...new Set(arr.map(Number))].sort((a, b) => a - b);
-const idToName = (friends, id) =>
+const idToName = (list, id) =>
   id === uid
     ? "You"
-    : friends.find(f => f.userId === id)?.firstName || `User ${id}`;
-
-// Pretty members for default labels
-const prettyMembers = (members, friends) =>
+    : list.find(u => u.userId === id)?.firstName || `User ${id}`;
+const prettyMembers = (members, list) =>
   normalizeMembers(members)
     .filter(id => id !== uid)
-    .map(id => idToName(friends, id))
+    .map(id => idToName(list, id))
     .join(", ") || "You";
-
-// Chat label: use custom name or default to member list
-const chatLabel = (chat, friends) =>
-  chat.name?.trim() || prettyMembers(chat.members, friends);
+const chatLabel = (chat, list) =>
+  chat.name?.trim() || prettyMembers(chat.members, list);
 
 export default function ChatsPage() {
-  const [chats, setChats] = useState([]);    // [{ chatId, name, members }]
-  const [history, setHistory] = useState({});// { chatId: [ {senderId,text,senderName} ] }
-  const [active, setActive] = useState(null); // current chatId
-  const [invites, setInvites] = useState([]); // [{ chatId, senderId, chatName }]
-  const [friends, setFriends] = useState([]); // [{ userId, firstName, lastName }]
+  const [chats, setChats] = useState([]);
+  const [history, setHistory] = useState({});
+  const [active, setActive] = useState(null);
+  const [invites, setInvites] = useState([]);
+  const [mutuals, setMutuals] = useState([]);
+
+  // — invite picker state —
+  const [inviteChatId, setInviteChatId] = useState(null);
+  const [inviteOptions, setInviteOptions] = useState([]);
+  const [selectedInvitee, setSelectedInvitee] = useState(null);
+
+  // add this:
+  const [membersData, setMembersData] = useState([]);
+
+
   const joinedRooms = useRef(new Set());
 
-  // Fetch chats & histories
+  // Load chats & histories
   const loadChats = useCallback(async () => {
     const sessions = await fetch(
       `http://localhost:3030/chat/sessions?userId=${uid}`
     ).then(r => r.json());
     const normalized = sessions.map(s => ({
-      chatId:  s.chatId ?? s.chat_session_id,
+      chatId: s.chatId ?? s.chat_session_id,
       members: normalizeMembers(
         Array.isArray(s.members) ? s.members : JSON.parse(s.chat_members)
       ),
-      name:    s.chat_name || s.name || null
+      name: s.chat_name || s.name || null
     }));
     setChats(normalized);
-    if (normalized.length && active === null) {
-      setActive(normalized[0].chatId);
-    }
-    // Load history if not already
+    if (normalized.length && active === null) setActive(normalized[0].chatId);
+
     for (const c of normalized) {
       if (!history[c.chatId]) {
         const h = await fetch(
@@ -57,15 +61,17 @@ export default function ChatsPage() {
         setHistory(prev => ({
           ...prev,
           [c.chatId]: h.map(m => ({
-            ...m,
-            senderName: idToName(friends, m.senderId)
+            senderId: m.senderId,
+            text: m.text,
+            senderName: idToName(mutuals, m.senderId),
+            senderUsername: m.senderUsername
           }))
         }));
       }
     }
-  }, [active, friends, history]);
+  }, [active, mutuals, history]);
 
-  // Fetch invites
+  // Load invites
   const loadInvites = useCallback(async () => {
     const inv = await fetch(
       `http://localhost:3030/chat/invites?userId=${uid}`
@@ -73,22 +79,21 @@ export default function ChatsPage() {
     setInvites(inv);
   }, []);
 
-  // Fetch friends
-  const loadFriends = useCallback(() => {
-    fetch(`http://localhost:3030/friends?userId=${uid}`)
+  // Load mutuals (people you can chat with)
+  const loadMutuals = useCallback(() => {
+    fetch(`http://localhost:3030/mutuals?userId=${uid}`)
       .then(r => r.json())
-      .then(setFriends)
+      .then(setMutuals)
       .catch(console.error);
   }, []);
 
-  // Initial load
   useEffect(() => {
-    loadFriends();
+    loadMutuals();
     loadChats();
     loadInvites();
-  }, [loadChats, loadInvites, loadFriends]);
+  }, [loadChats, loadInvites, loadMutuals]);
 
-  // Join socket rooms
+  // auto-join socket rooms
   useEffect(() => {
     chats.forEach(c => {
       if (!joinedRooms.current.has(c.chatId)) {
@@ -98,7 +103,7 @@ export default function ChatsPage() {
     });
   }, [chats]);
 
-  // Real-time handlers
+  // real-time handlers
   useEffect(() => {
     const onMsg = msg => {
       setHistory(prev => ({
@@ -106,9 +111,10 @@ export default function ChatsPage() {
         [msg.chatId]: [
           ...(prev[msg.chatId] || []),
           {
-            senderId:   msg.senderId,
-            senderName: idToName(friends, msg.senderId),
-            text:       msg.text
+            senderId: msg.senderId,
+            senderName: idToName(mutuals, msg.senderId),
+            senderUsername: msg.senderUsername,
+            text: msg.text
           }
         ]
       }));
@@ -136,9 +142,7 @@ export default function ChatsPage() {
           )
           .filter(c => !(chatId === c.chatId && userId === uid))
       );
-      if (userId === uid && active === chatId) {
-        setActive(null);
-      }
+      if (userId === uid && active === chatId) setActive(null);
     };
     const onRenamed = ({ chatId, name }) => {
       setChats(prev =>
@@ -151,81 +155,90 @@ export default function ChatsPage() {
       );
     };
 
-    socket.on("chatMessage",    onMsg);
-    socket.on("chatInvite",     onInvite);
+    socket.on("chatMessage", onMsg);
+    socket.on("chatInvite", onInvite);
     socket.on("userJoinedRoom", onUserJoined);
-    socket.on("userLeftRoom",   onUserLeft);
-    socket.on("chatRenamed",    onRenamed);
+    socket.on("userLeftRoom", onUserLeft);
+    socket.on("chatRenamed", onRenamed);
 
     return () => {
-      socket.off("chatMessage",    onMsg);
-      socket.off("chatInvite",     onInvite);
+      socket.off("chatMessage", onMsg);
+      socket.off("chatInvite", onInvite);
       socket.off("userJoinedRoom", onUserJoined);
-      socket.off("userLeftRoom",   onUserLeft);
-      socket.off("chatRenamed",    onRenamed);
+      socket.off("userLeftRoom", onUserLeft);
+      socket.off("chatRenamed", onRenamed);
     };
-  }, [active, friends, loadChats, loadInvites]);
+  }, [active, mutuals, loadChats, loadInvites]);
 
-  // REST actions
+  // Accept/reject invites
   async function acceptInvite(chatId) {
     await fetch("http://localhost:3030/chat/invite/accept", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ chatId, userId: uid })
+      body: JSON.stringify({ chatId, userId: uid })
     });
     socket.emit("joinChat", chatId, () => {});
     joinedRooms.current.add(chatId);
     loadChats();
     loadInvites();
   }
-
   async function rejectInvite(chatId) {
     await fetch("http://localhost:3030/chat/invite/reject", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ chatId, userId: uid })
+      body: JSON.stringify({ chatId, userId: uid })
     });
     loadInvites();
   }
 
-  async function sendInvite(chatId) {
-    const chat     = chats.find(c => c.chatId === chatId);
-    const existing = new Set(chat.members);
-    const options  = friends.filter(f => !existing.has(f.userId));
-    if (!options.length) return alert("No friends left to invite.");
-    const choice = prompt(
-      "Invite which friend?\n" +
-      options.map(f => `${f.userId}: ${f.firstName} ${f.lastName}`).join("\n")
-    );
-    if (!choice) return;
-    const inviteeId = Number(choice.split(":")[0].trim());
+  // show invite‑picker for existing chat
+  function sendInvite(chatId) {
+    const chat = chats.find(c => c.chatId === chatId);
+    const already = new Set(chat.members);
+    const opts = mutuals.filter(u => !already.has(u.userId));
+    if (opts.length === 0) return alert("No one left to invite.");
+    setInviteOptions(opts);
+    setInviteChatId(chatId);
+    setSelectedInvitee(null);
+  }
+  async function confirmInvite() {
+    if (!inviteChatId || !selectedInvitee) return;
     await fetch("http://localhost:3030/chat/invite", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ chatId, inviterId: uid, inviteeId })
+      body: JSON.stringify({
+        chatId: inviteChatId,
+        inviterId: uid,
+        inviteeId: selectedInvitee
+      })
     });
+    setInviteChatId(null);
+    setInviteOptions([]);
+    setSelectedInvitee(null);
+    loadInvites();
   }
 
+  // leave chat
   async function leaveChat(chatId) {
     await fetch("http://localhost:3030/chat/leave", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ chatId, userId: uid })
+      body: JSON.stringify({ chatId, userId: uid })
     });
     setChats(prev => prev.filter(c => c.chatId !== chatId));
     if (active === chatId) setActive(null);
     socket.emit("leaveChat", chatId, () => {});
   }
 
-  // Rename chat
+  // rename chat
   async function renameChat(chatId) {
     const current = chats.find(c => c.chatId === chatId)?.name || "";
     const newName = prompt("New chat name:", current);
     if (!newName || newName.trim() === current) return;
     await fetch(`http://localhost:3030/chat/${chatId}/name`, {
-      method:  "PUT",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ name: newName.trim() })
+      body: JSON.stringify({ name: newName.trim() })
     });
     setChats(prev =>
       prev.map(c =>
@@ -234,39 +247,84 @@ export default function ChatsPage() {
     );
   }
 
-  // Create new chat
-  async function createChat() {
-    if (!friends.length) return alert("No friends to chat with.");
-    const choice = prompt(
-      "Start chat with which friend?\n" +
-      friends.map(f => `${f.userId}: ${f.firstName} ${f.lastName}`).join("\n")
+  // show invite‑picker to start a brand–new chat
+  function createChat() {
+    const opts = mutuals.filter(u =>
+      !chats.some(c => c.members.includes(u.userId))
     );
-    if (!choice) return;
-    const otherId = Number(choice.split(":")[0].trim());
-
+    if (opts.length === 0) {
+      return alert("You’re already in a chat with everyone.");
+    }
+    setInviteOptions(opts);
+    setInviteChatId("new");
+    setSelectedInvitee(null);
+  }
+  async function confirmCreateAndInvite() {
+    if (!selectedInvitee) return;
     // 1) create or fetch session
     const { chatId } = await fetch("http://localhost:3030/chat/create", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ members: [uid, otherId] })
+      body: JSON.stringify({ members: [uid, selectedInvitee] })
     }).then(r => r.json());
 
-    // 2) update UI & join socket with callback
-    setChats(prev => [...prev, { chatId, members: [uid, otherId], name: null }]);
-    setActive(chatId);
+    // 2) update UI & join
+    setChats(prev => [
+      ...prev,
+      { chatId, members: [uid, selectedInvitee], name: null }
+    ]);
     socket.emit("joinChat", chatId, () => {});
     joinedRooms.current.add(chatId);
     setHistory(prev => ({ ...prev, [chatId]: [] }));
 
-    // 3) send the invite
+    // 3) send invite
     await fetch("http://localhost:3030/chat/invite", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ chatId, inviterId: uid, inviteeId: otherId })
+      body: JSON.stringify({
+        chatId,
+        inviterId: uid,
+        inviteeId: selectedInvitee
+      })
     });
+
+    setInviteChatId(null);
+    setInviteOptions([]);
+    setSelectedInvitee(null);
+    loadInvites();
   }
 
-  // Render
+  
+  const activeChat = chats.find(c => c.chatId === active) || { members: [] };
+  useEffect(() => {
+    if (active == null) {
+      setMembersData([]);
+      return;
+    }
+    // get the raw IDs for the active chat, excluding yourself
+    const chat = chats.find(c => c.chatId === active);
+    if (!chat) return;
+    const otherIds = chat.members.filter(id => id !== uid);
+
+    // fetch each other user’s record in parallel
+    Promise.all(
+      otherIds.map(id =>
+        fetch(`http://localhost:3030/users/${id}`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+      )
+    ).then(results => {
+      // filter out any nulls, keep { userId, username } shape
+      setMembersData(results.filter(u => u).map(u => ({
+        userId:   u.userId,
+        username: u.username
+      })));
+    });
+  }, [active, chats]);
+  
+
+
+
   return (
     <div style={{ display: "flex", height: "70vh" }}>
       <aside style={{ width: 280, borderRight: "1px solid #ddd", padding: 12 }}>
@@ -280,11 +338,11 @@ export default function ChatsPage() {
               const label = inv.chatName
                 ? inv.chatName
                 : chat
-                  ? chatLabel(chat, friends)
+                  ? chatLabel(chat, mutuals)
                   : `Chat ${inv.chatId}`;
               return (
                 <div key={inv.chatId} style={{ marginBottom: 8 }}>
-                  <strong>{idToName(friends, inv.senderId)}</strong> invited you to{" "}
+                  <strong>{idToName(mutuals, inv.senderId)}</strong> invited you to{" "}
                   <strong>{label}</strong><br/>
                   <button onClick={() => acceptInvite(inv.chatId)}>Accept</button>{" "}
                   <button onClick={() => rejectInvite(inv.chatId)}>Reject</button>
@@ -302,6 +360,57 @@ export default function ChatsPage() {
           >
             + New Chat
           </button>
+
+          {/* ——— INVITE PICKER UI ——— */}
+          {inviteChatId && (
+            <div style={{
+              margin: "12px 0",
+              padding: 12,
+              border: "1px solid #ccc",
+              borderRadius: 4,
+              maxHeight: 200,
+              overflowY: "auto"
+            }}>
+              <h4>
+                {inviteChatId === "new"
+                  ? "Start a new chat with…"
+                  : "Invite someone to this chat"}
+              </h4>
+              {inviteOptions.map(u => (
+                <div key={u.userId} style={{ marginBottom: 4 }}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="invitee"
+                      value={u.userId}
+                      checked={selectedInvitee === u.userId}
+                      onChange={() => setSelectedInvitee(u.userId)}
+                    />{" "}
+                    {u.firstName} {u.lastName}
+                  </label>
+                </div>
+              ))}
+              <div style={{ marginTop: 8 }}>
+                <button
+                  onClick={inviteChatId === "new" ? confirmCreateAndInvite : confirmInvite}
+                  disabled={!selectedInvitee}
+                  style={{ marginRight: 8 }}
+                >
+                  Confirm
+                </button>
+                <button
+                  onClick={() => {
+                    setInviteChatId(null);
+                    setInviteOptions([]);
+                    setSelectedInvitee(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {chats.map(c => (
             <div
               key={c.chatId}
@@ -312,8 +421,22 @@ export default function ChatsPage() {
                 background: c.chatId === active ? "#eef" : undefined
               }}
             >
-              <strong>{chatLabel(c, friends)}</strong><br/>
-              <small>({prettyMembers(c.members, friends)})</small><br/>
+              <strong>{chatLabel(c, mutuals)}</strong><br/>
+              {(() => {
+                const membersStr = prettyMembers(c.members, mutuals);
+
+                // 1) no one else? "Just you!"
+                if (!membersStr || membersStr === "You") {
+                  return <small><em>Just you!</em></small>;
+                }
+                // 2) 1:1 chat with default name? hide subtitle
+                if ((c.name?.trim() || "") === membersStr) {
+                  return null;
+                }
+                // 3) otherwise show list plain
+                return <small>{membersStr}</small>;
+              })()}<br/>
+
               <button
                 style={{ fontSize: "0.8em", marginRight: 4 }}
                 onClick={e => { e.stopPropagation(); renameChat(c.chatId); }}
@@ -337,36 +460,33 @@ export default function ChatsPage() {
         </section>
       </aside>
 
-      <main
-        style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            padding: 24,
-            minHeight: 0
-        }}
-        >
+      <main style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        padding: 24,
+        minHeight: 0
+      }}>
         {active == null ? (
-            <em>Select a chat or accept an invite</em>
+          <em>Select a chat or accept an invite</em>
         ) : (
-            <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
             <ChatWindow
-                title={chats.find(c => c.chatId === active)?.name || "Chat"}
-                messages={history[active] || []}
-                userId={uid}
-                onSend={async msg => {
-                       // just call REST — server will broadcast for us
-                       await fetch("http://localhost:3030/chat/send", {
-                         method: "POST",
-                         headers: { "Content-Type": "application/json" },
-                         body: JSON.stringify({ chatId: active, userId: uid, message: msg })
-                       });
-                    }}
+              title={chats.find(c => c.chatId === active)?.name || "Chat"}
+              members={membersData}   
+              messages={history[active] || []}
+              userId={uid}
+              onSend={async msg => {
+                await fetch("http://localhost:3030/chat/send", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ chatId: active, userId: uid, message: msg })
+                });
+              }}
             />
-            </div>
+          </div>
         )}
-        </main>
-
+      </main>
     </div>
   );
 }

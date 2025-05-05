@@ -1,28 +1,197 @@
+// src/pages/Layout.js
 import { Outlet, useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function Layout() {
   const navigate = useNavigate();
+  const userId = Number(localStorage.getItem("userId"));
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await fetch("http://localhost:3030/logout", {
       method: "POST",
-      credentials: "include"
+      credentials: "include",
     });
     localStorage.clear();
-    window.location.href = "/login"; // force full reload
+    window.location.href = "/login";
   };
 
+  // sidebar dimensions
+  const SIDEBAR_WIDTH = 100;
+  const ICON_SIZE = 32;
+  const PROFILE_SIZE = 40;
+
+  const iconStyle = {
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    cursor: "pointer",
+    display: "block",
+    marginBottom: 24,
+  };
+
+  // direct‐redirect to profile image
+  const profileImageUrl = `http://localhost:3030/users/${userId}/image`;
+
   return (
-    <div>
-      <nav style={{ padding: "1rem", background: "#f0f0f0" }}>
-        <button onClick={() => navigate("/feed")}>Feed</button>
-        <button onClick={() => navigate("/search")}>Search</button>
-        <button onClick={() => navigate("/chats")}>Chats</button>
-        <button onClick={() => navigate("/user")}>My Profile</button>
-        <button onClick={() => navigate("/friends")}>Add/Remove Friends</button> {/* ✅ new tab */}
-        <button onClick={handleLogout}>Logout</button>
-      </nav>
-      <Outlet />
+    <div style={{ display: "flex", height: "100vh" }}>
+      <aside
+        style={{
+          width: SIDEBAR_WIDTH,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: 24,
+          paddingBottom: 24,
+          borderRight: "1px solid #ddd",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Logo */}
+        <img
+          src="/icons/logo.svg"
+          alt="Logo"
+          style={iconStyle}
+          onClick={() => navigate("/feed")}
+        />
+
+        {/* Home */}
+        <img
+          src="/icons/home.svg"
+          alt="Home"
+          style={iconStyle}
+          onClick={() => navigate("/feed")}
+        />
+
+        {/* Search */}
+        <img
+          src="/icons/search.svg"
+          alt="Search"
+          style={iconStyle}
+          onClick={() => navigate("/search")}
+        />
+
+        {/* Create Post */}
+        <img
+          src="/icons/create_post.svg"
+          alt="Create Post"
+          style={iconStyle}
+          onClick={() => navigate("/post/create")}
+        />
+
+        {/* Friends */}
+        <img
+          src="/icons/search_users.svg"
+          alt="Search Users"
+          style={iconStyle}
+          onClick={() => navigate("/users/search")}
+        />
+
+        {/* Chats */}
+        <img
+          src="/icons/send.svg"
+          alt="Chats"
+          style={iconStyle}
+          onClick={() => navigate("/chats")}
+        />
+
+        {/* Spacer */}
+        <div style={{ flexGrow: 1 }} />
+
+        {/* Profile */}
+        <img
+          src={profileImageUrl}
+          alt="Your profile"
+          onClick={() => navigate("/user")}
+          style={{
+            width: PROFILE_SIZE,
+            height: PROFILE_SIZE,
+            borderRadius: "50%",
+            cursor: "pointer",
+            objectFit: "cover",
+            marginBottom: 16,
+          }}
+        />
+
+        {/* Hamburger + dropdown */}
+        <div style={{ position: "relative", marginBottom: 16 }}>
+          <img
+            src="/icons/menu.svg"
+            alt="Menu"
+            style={{ width: ICON_SIZE, height: ICON_SIZE, cursor: "pointer" }}
+            onClick={() => setMenuOpen((o) => !o)}
+          />
+
+          {menuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "100%",
+                transform: "translate(8px, -50%)",
+                background: "#fff",
+                borderRadius: 12,
+                boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+                overflow: "hidden",
+                minWidth: 200,
+                zIndex: 100,
+              }}
+            >
+              {/* Settings */}
+              <div
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate("/settings");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "12px 16px",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#f5f5f5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                <img
+                  src="/icons/settings.svg"
+                  alt=""
+                  style={{ width: 20, height: 20, marginRight: 12 }}
+                />
+                Settings
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, background: "#eee" }} />
+
+              {/* Log out */}
+              <div
+                onClick={handleLogout}
+                style={{
+                  padding: "12px 16px",
+                  cursor: "pointer",
+                  transition: "background 0.2s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#f5f5f5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                Log out
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main style={{ flex: 1, overflow: "auto" }}>
+        <Outlet />
+      </main>
     </div>
   );
 }
