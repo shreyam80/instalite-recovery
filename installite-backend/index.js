@@ -1,111 +1,139 @@
 // index.js
-require('dotenv').config();
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Import utility modules
-const { s3 } = require('./utils/aws');
-const { generateEmbedding } = require('./utils/embeddings');
-const { storeUserEmbedding, getTopActorMatches } = require('./utils/vector');
-const { updateUserRecord, createStatusPost } = require('./utils/db');
+// AWS / S3 helpers
+import { uploadToS3, getSignedUrl } from './utils/s3.js';
 
-const app = express();
-app.use(express.json());
+// face‐embedding pipeline
+import { generateFaceEmbedding } from './utils/face_embed.js';
 
-// Ensure the uploads folder exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
+// ChromaDB helpers (both face‐matching & chatbot)
+import {
+  createRetrieverFromDatabase,
+  storeUserEmbedding,
+  getTopFaceMatches
+} from './utils/vector.js';
+
+// your DB utilities
+import { updateUserRecord, createStatusPost } from './utils/db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+async function startServer() {
+  // 1) Initialize chatbot retriever
+  console.log('→ Initializing Chatbot retriever…');
+  await createRetrieverFromDatabase();
+
+  // 2) Express setup
+  const app = express();
+
+  // CORS & JSON body parsing
+  app.use(cors({
+    origin: 'http://localhost:3001',
+    credentials: true
+  }));
+  app.use(express.json());
+
+  // ensure uploads dir
+  const uploadsDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
+  // Multer for multipart
+  const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename:    (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  });
+  const upload = multer({ storage });
+
+  // S3 bucket check
+  console.log("→ Using S3 bucket:", process.env.S3_BUCKET);
+  if (!process.env.S3_BUCKET) {
+    console.error("❌ Missing S3_BUCKET env var—set that in your .env!");
+    process.exit(1);
+  }
+
+  // ——— Upload + Match Endpoint ———
+  app.post(
+    '/uploadProfileImage',
+    upload.single('profileImage'),
+    async (req, res) => {
+      try {
+        const userId = req.body.userId;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
+        // 1) read & embed from buffer
+        const buffer    = fs.readFileSync(file.path);
+        const embedding = await generateFaceEmbedding(buffer);
+
+        // 2) push to S3
+        const ext = path.extname(file.originalname);
+        const key = `profile_photos/${userId}-${Date.now()}${ext}`;
+        await uploadToS3(file.path, key);
+
+        // 3) signed URL for clients
+        const imageUrl = getSignedUrl(key);
+        console.log('Signed URL for download:', imageUrl);
+
+        // 4) cleanup local file
+        fs.unlinkSync(file.path);
+
+        // 5) persist to your DB + vector store
+        await updateUserRecord(userId, { profileImageUrl: imageUrl });
+        await storeUserEmbedding(userId, embedding);
+
+        // 6) query ChromaDB
+        const actorMatches = await getTopFaceMatches(embedding, 5);
+
+        return res.json({ success: true, imageUrl, actorMatches });
+      } catch (err) {
+        // log full error
+        console.error('♻️ Error in /uploadProfileImage:', err);
+        // send message + top of stack back to client
+        return res.status(500).json({
+          error: err.message,
+          stack: (err.stack || '').split('\n').slice(0, 5)
+        });
+      }
+    }
+  );
+
+  // ——— Link Actor Endpoint ———
+  app.post('/linkActorToUser', async (req, res) => {
+    try {
+      const { userId, actorId } = req.body;
+      if (!userId || !actorId) {
+        return res.status(400).json({ error: 'Missing userId or actorId' });
+      }
+
+      await updateUserRecord(userId, { linkedActorId: actorId });
+      await createStatusPost(
+        userId,
+        `User ${userId} is now linked to actor ${actorId}`
+      );
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Error in /linkActorToUser:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // start listening
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
 
-// Multer setup for file upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  }
-});
-const upload = multer({ storage });
-
-// Endpoint: Upload Profile Image and Process Embedding/Matching
-app.post('/uploadProfileImage', upload.single('profileImage'), async (req, res) => {
-  try {
-    const userId = req.body.userId;
-    if (!userId) return res.status(400).json({ error: "Missing userId in request body" });
-
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: "No file uploaded" });
-
-    // Generate the image embedding (simulate or integrate your model here)
-    const embedding = await generateEmbedding(file.path);
-
-    // Upload image to AWS S3
-    const fileExtension = path.extname(file.originalname);
-    const s3Key = `profile_photos/${userId}-${Date.now()}${fileExtension}`;
-    const fileStream = fs.createReadStream(file.path);
-
-    const s3Params = {
-      Bucket: process.env.S3_BUCKET,
-      Key: s3Key,
-      Body: fileStream,
-      ACL: 'public-read',
-      ContentType: file.mimetype
-    };
-
-    const s3Response = await s3.upload(s3Params).promise();
-    const imageUrl = s3Response.Location;
-    console.log('Image uploaded to S3:', imageUrl);
-
-    // Delete temporary file
-    fs.unlinkSync(file.path);
-
-    // Update the user's record with the new image URL
-    await updateUserRecord(userId, { profileImageUrl: imageUrl });
-
-    // Store the embedding in your vector DB (ChromaDB)
-    await storeUserEmbedding(userId, embedding);
-
-    // Query vector DB for the top 5 actor matches
-    const topActors = await getTopActorMatches(embedding);
-
-    // Return the image URL and top actor matches to the frontend
-    res.json({
-      success: true,
-      imageUrl,
-      actorMatches: topActors
-    });
-  } catch (error) {
-    console.error("Error in /uploadProfileImage:", error);
-    res.status(500).json({ error: "Image upload failed" });
-  }
-});
-
-// Endpoint: Link Selected Actor to User
-app.post('/linkActorToUser', async (req, res) => {
-  try {
-    const { userId, actorId } = req.body;
-    if (!userId || !actorId) {
-      return res.status(400).json({ error: "Missing userId or actorId" });
-    }
-
-    // Update the user's record to link the selected actor (simulated)
-    await updateUserRecord(userId, { linkedActorId: actorId });
-    // Create an automatic status post (simulated)
-    await createStatusPost(userId, `User ${userId} is now linked to actor ${actorId}`);
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error in /linkActorToUser:", error);
-    res.status(500).json({ error: "Failed to link actor" });
-  }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+startServer().catch(err => {
+  console.error("Fatal error starting server:", err);
+  process.exit(1);
 });
