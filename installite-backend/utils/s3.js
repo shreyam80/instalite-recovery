@@ -1,5 +1,4 @@
 // utils/s3.js
-import 'dotenv/config';              // ← must come first!
 import AWS from 'aws-sdk';
 import fs from 'fs';
 import path from 'path';
@@ -14,21 +13,25 @@ const {
   S3_BUCKET
 } = process.env;
 
+// build credentials object
+const creds = {
+  accessKeyId:     AWS_ACCESS_KEY_ID,
+  secretAccessKey: AWS_SECRET_ACCESS_KEY,
+};
+if (AWS_SESSION_TOKEN) creds.sessionToken = AWS_SESSION_TOKEN;
+
 // instantiate S3 with explicit credentials
 export const s3 = new AWS.S3({
-  region: AWS_REGION,
-  credentials: {
-    accessKeyId:     AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
-    sessionToken:    AWS_SESSION_TOKEN,   // if you’re not using STS you can omit this
-  }
+  region:      AWS_REGION,
+  credentials: creds
 });
 
-console.log("→ ENV check:",
-  "ACCESS_KEY_ID=", process.env.AWS_ACCESS_KEY_ID,
-  "SECRET_KEY=", process.env.AWS_SECRET_ACCESS_KEY ? "✓" : "𐄂",
-  "REGION=", process.env.AWS_REGION,
-  "BUCKET=", process.env.S3_BUCKET
+console.log('→ ENV check:',
+  'ACCESS_KEY=',   AWS_ACCESS_KEY_ID,
+  'SECRET_KEY=',   !!AWS_SECRET_ACCESS_KEY,
+  'SESSION_TOKEN=',!!AWS_SESSION_TOKEN,
+  'REGION=',       AWS_REGION,
+  'BUCKET=',       S3_BUCKET
 );
 
 /**
