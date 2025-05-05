@@ -1,14 +1,16 @@
+// src/pages/SearchPage.js
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function SearchPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [users, setUsers] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check session on mount
   useEffect(() => {
     async function checkSession() {
       const res = await fetch("http://localhost:3030/session", {
@@ -26,12 +28,14 @@ export default function SearchPage() {
     e.preventDefault();
     setError("");
     setAnswer("");
+    setUsers([]);
+    setPosts([]);
     setLoading(true);
 
     try {
       const res = await fetch("http://localhost:3030/search", {
         method: "POST",
-        credentials: "include", // ✅ ensure session cookie is sent
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
       });
@@ -42,6 +46,8 @@ export default function SearchPage() {
         setError(data.error || "Chatbot failed to answer.");
       } else {
         setAnswer(data.answer);
+        setUsers(data.users || []);
+        setPosts(data.posts || []);
       }
     } catch (err) {
       console.error("Search error:", err);
@@ -74,6 +80,91 @@ export default function SearchPage() {
         <div style={{ marginTop: 20 }}>
           <h4>Answer:</h4>
           <p>{answer}</p>
+        </div>
+      )}
+
+      {users.length > 0 && (
+        <div style={{ marginTop: 30 }}>
+          <h4>Related Users:</h4>
+          {users.map((u) => (
+            <div key={u.user_id} style={{ padding: "0.5rem 0" }}>
+              @{u.username}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {posts.length > 0 && (
+        <div style={{ marginTop: 30 }}>
+          <h4>Related Posts:</h4>
+          {posts.map((post, idx) => {
+            const hashtags =
+              Array.isArray(post.hashtag_text) && typeof post.hashtag_text !== "string"
+                ? post.hashtag_text
+                : typeof post.hashtag_text === "string"
+                ? JSON.parse(post.hashtag_text || "[]")
+                : [];
+
+            return (
+              <div
+                key={idx}
+                className="postCard"
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "1rem",
+                  marginBottom: "1rem",
+                  borderRadius: "8px",
+                }}
+              >
+                <strong>@{post.author}</strong>
+                <p>{post.text_content}</p>
+
+                {hashtags.length > 0 && (
+                  <div style={{ marginTop: "0.5rem" }}>
+                    {hashtags.map((tag, tagIdx) => (
+                      <span
+                        key={tagIdx}
+                        style={{
+                          display: "inline-block",
+                          backgroundColor: "#e0e0e0",
+                          borderRadius: "12px",
+                          padding: "0.2rem 0.6rem",
+                          marginRight: "0.5rem",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        {tag.startsWith("#") ? tag : `#${tag}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {post.image_url && (
+                  <>
+                    <img
+                      src={post.image_url}
+                      alt="post"
+                      style={{ maxWidth: "100%", marginTop: "0.5rem" }}
+                    />
+                    <br />
+                  </>
+                )}
+
+                <small>
+                  {new Date(post.timestamp).toLocaleString()}
+                </small>
+
+                <div style={{ marginTop: "0.3rem", fontSize: "0.85rem" }}>
+                  ❤️ {post.likeCount || 0} likes
+                </div>
+
+                {/* Placeholder for comments */}
+                <p style={{ fontStyle: "italic", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+                  (Comments unavailable in search view)
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

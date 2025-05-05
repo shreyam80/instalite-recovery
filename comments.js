@@ -111,29 +111,33 @@ export async function deleteComment(commentId, userId) {
   }
 }
 
-export async function getCommentsForPost(postId) {
-  try {
-    const [rows] = await db.send_sql(
-      `SELECT c.comment_id, c.user_id, c.text_content, c.timestamp, c.parent_comment_id,
-              COUNT(cl.user_id) AS likes
-         FROM comments c
-         LEFT JOIN comment_likes cl ON c.comment_id = cl.comment_id
-        WHERE c.post_id = ?
-        GROUP BY c.comment_id
-        ORDER BY c.timestamp DESC`,
-      [postId]
-    );
+export async function getCommentsForPosts(postIds) {
+  const db = get_db_connection();
 
-    return rows.map((row) => ({
-      commentId: row.comment_id,
-      userId: row.user_id,
+  if (!Array.isArray(postIds) || postIds.length === 0) {
+    return {}; // 🔒 early return to avoid SQL error
+  }
+
+  const placeholders = postIds.map(() => '?').join(',');
+  const [rows] = await db.send_sql(
+    `SELECT c.post_id, c.text_content, c.timestamp, u.username
+     FROM comments c
+     JOIN users u ON c.user_id = u.user_id
+     WHERE c.post_id IN (${placeholders})
+     ORDER BY c.timestamp ASC`,
+    postIds
+  );
+
+  const commentsByPost = {};
+  for (const row of rows) {
+    if (!commentsByPost[row.post_id]) commentsByPost[row.post_id] = [];
+    commentsByPost[row.post_id].push({
+      username: row.username,
       text: row.text_content,
       timestamp: row.timestamp,
-      parentCommentId: row.parent_comment_id,
-      likes: row.likes,
-    }));
-  } catch (err) {
-    console.error("getCommentsForPost error:", err);
-    return { error: "Failed to fetch comments" };
+    });
   }
+
+  return commentsByPost;
 }
+

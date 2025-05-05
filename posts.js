@@ -1,6 +1,6 @@
 import { get_db_connection } from './server/models/rdbms.js';
-import { producePostEvent } from './server/kafka/producePostEvent.js'; // ✅ Add this line
-
+import { producePostEvent } from './server/kafka/producePostEvent.js';
+import { getCommentsForPosts } from './comments.js';
 
 const db = get_db_connection();
 
@@ -16,7 +16,6 @@ export async function createPost(userId, text, imageUrl = null, hashtags = []) {
       await linkPostToHashtags(postId, hashtags);
     }
 
-    // NEW: Add Kafka logic here, after DB insert, before returning result
     const [userResult] = await db.send_sql(
       "SELECT username FROM users WHERE user_id = ?",
       [userId]
@@ -118,39 +117,17 @@ export async function linkPostToHashtags(postId, hashtags) {
   }
 }
 
-export async function getPostsByUser(userId) {
-  try {
-    const [posts] = await db.send_sql(
-      `SELECT 
-         p.post_id,
-         p.text_content,
-         p.timestamp,
-         p.image_url,
-         COUNT(pl.user_id) AS like_count,
-         u.username AS author_username,
-         u.profile_image_url
-       FROM posts p
-       JOIN users u ON p.author = u.user_id
-       LEFT JOIN post_likes pl ON p.post_id = pl.post_id
-       WHERE p.author = ?
-       GROUP BY p.post_id
-       ORDER BY p.timestamp DESC`,
-      [userId]
-    );
-
-    return posts.map((post) => ({
-      postId: post.post_id,
-      text: post.text_content,
-      timestamp: post.timestamp,
-      imageUrl: post.image_url,
-      author: post.author_username,
-      profileImage: post.profile_image_url,
-      likeCount: post.like_count || 0,
-    }));
-  } catch (err) {
-    console.error("getPostsByUserId error:", err);
-    return { error: "Failed to retrieve user posts" };
+function safeParseJSON(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
+  return [];
 }
 
 export async function getPostsForUser(userId) {
@@ -175,14 +152,10 @@ export async function getPostsForUser(userId) {
       [userAndFriends]
     );
 
-    function safeParseJSON(value) {
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
+    if (posts.length === 0) return [];
+
+    const postIds = posts.map((p) => p.post_id);
+    const commentsByPost = await getCommentsForPosts(postIds);
 
     return posts.map((post) => ({
       postId: post.post_id,
@@ -192,10 +165,49 @@ export async function getPostsForUser(userId) {
       author: post.author_username,
       profileImage: post.profile_image_url,
       likeCount: post.likeCount || 0,
-      hashtags: safeParseJSON(post.hashtags),
+      hashtags: safeParseJSON(post.hashtag_text),
+      comments: commentsByPost[post.post_id] || []
     }));
   } catch (err) {
     console.error("getPostsForUser error:", err);
     return { error: "Failed to retrieve posts" };
+  }
+}
+
+export async function getPostsByUser(userId) {
+  try {
+    const [posts] = await db.send_sql(
+      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, 
+              p.hashtag_text,
+              COUNT(pl.user_id) AS like_count,
+              u.username AS author_username, u.profile_image_url
+       FROM posts p
+       JOIN users u ON p.author = u.user_id
+       LEFT JOIN post_likes pl ON p.post_id = pl.post_id
+       WHERE p.author = ?
+       GROUP BY p.post_id
+       ORDER BY p.timestamp DESC`,
+      [userId]
+    );
+
+    if (posts.length === 0) return [];
+
+    const postIds = posts.map((p) => p.post_id);
+    const commentsByPost = await getCommentsForPosts(postIds);
+
+    return posts.map((post) => ({
+      postId: post.post_id,
+      text: post.text_content,
+      timestamp: post.timestamp,
+      imageUrl: post.image_url,
+      author: post.author_username,
+      profileImage: post.profile_image_url,
+      likeCount: post.like_count || 0,
+      hashtags: safeParseJSON(post.hashtag_text),
+      comments: commentsByPost[post.post_id] || []
+    }));
+  } catch (err) {
+    console.error("getPostsByUserId error:", err);
+    return { error: "Failed to retrieve user posts" };
   }
 }

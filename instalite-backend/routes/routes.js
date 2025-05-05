@@ -16,8 +16,7 @@ import {
 import bcrypt from "bcrypt";
 
 import { getIO } from "../../server/chat/websocket.js";
-import { get_db_connection } from "../../server/models/rdbms.js";
-
+import { searchUsersByQuery, searchPostsByQuery } from "../../server/models/rag_helpers.js"; // You’ll create these
 import {
   createChat,
   sendMessage,
@@ -31,11 +30,7 @@ import {
   getUserChats,
   renameChat,
 } from "../../server/chat/chat.js";
-
 import { getFriendsForUser }  from "../../friends.js";
-import { getPostsByUser, getPostsForUser } from "../../posts.js";
-
-/* ---- chatbot helpers ---- */
 import { callChatbot } from "../../chatbot/chatbot.js";
 import {
   ensureRetrieversReady,
@@ -153,7 +148,6 @@ export async function handleUpdateSettings(req, res) {
 export async function handleLogin(req, res) {
   const result = await authenticateUser(req.body);
   if (result.error) return res.status(401).json({ error: result.error });
-
   req.session.user = { userId: result.userId, username: result.username };
   return res.status(200).json({ username: result.username });
 }
@@ -191,9 +185,6 @@ export async function handleRegister(req, res) {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  LOGOUT                                                              */
-/* ------------------------------------------------------------------ */
 export function handleLogout(req, res) {
   req.session.destroy(err => {
     if (err) {
@@ -204,13 +195,9 @@ export function handleLogout(req, res) {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/*  CHATBOT SEARCH (stub)                                               */
-/* ------------------------------------------------------------------ */
 export async function handleSearch(req, res) {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: "No question provided" });
-
   try {
     if (!retrieverInitialized) {
       console.log("Initializing chatbot retrievers…");
@@ -219,16 +206,20 @@ export async function handleSearch(req, res) {
     }
     const docs   = await retrieveRelevantDocs(question);
     const answer = await callChatbot(question, docs);
-    return res.json({ answer });
+
+    const [users, posts] = await Promise.all([
+      searchUsersByQuery(question),
+      searchPostsByQuery(question)
+    ]);
+
+    return res.json({ answer, users, posts });
+
   } catch (err) {
     console.error("Chatbot error:", err);
     return res.status(500).json({ error: "Chatbot failed to process question" });
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  FRIENDS                                                             */
-/* ------------------------------------------------------------------ */
 export async function handleGetFriends(req, res) {
   const userId = Number(req.query.userId);
   if (!userId) return res.status(400).json({ error: "Missing userId" });
@@ -236,13 +227,9 @@ export async function handleGetFriends(req, res) {
   return res.json(friends);
 }
 
-/* ------------------------------------------------------------------ */
-/*  FEED                                                                */
-/* ------------------------------------------------------------------ */
 export async function handleGetFeed(req, res) {
   const userId = req.session?.user?.userId;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
   const posts = await getPostsForUser(userId);
   if (posts.error) {
     return res.status(500).json({ error: posts.error });
@@ -250,9 +237,6 @@ export async function handleGetFeed(req, res) {
   return res.status(200).json(posts);
 }
 
-/* ------------------------------------------------------------------ */
-/*  CHAT REST ENDPOINTS                                                 */
-/* ------------------------------------------------------------------ */
 export async function handleGetUserChats(req, res) {
   const userId = Number(req.query.userId);
   return res.json(await getUserChats(userId));
@@ -314,18 +298,12 @@ export async function handleGetInvites(req, res) {
   return res.json(await getInvites(req.query.userId));
 }
 
-/* ------------------------------------------------------------------ */
-/*  USER IMAGE (placeholder redirect)                                  */
-/* ------------------------------------------------------------------ */
 export function handleGetUserImage(req, res) {
   const userId = Number(req.params.userId);
-  const imageUrl = getUserImageByID(userId);     // returns /public/placeholder_profile_picture.png
+  const imageUrl = getUserImageByID(userId);
   return res.redirect(imageUrl);
 }
 
-/* ------------------------------------------------------------------ */
-/*  POSTS                                                               */
-/* ------------------------------------------------------------------ */
 export async function handleCreatePost(req, res) {
   const { text_content, hashtag_text, image_url } = req.body;
   const author = req.session?.user?.userId;
@@ -334,18 +312,11 @@ export async function handleCreatePost(req, res) {
   try {
     const db = get_db_connection();
     const ts = new Date();
-
     const [result] = await db.send_sql(
       `INSERT INTO posts
          (author, text_content, hashtag_text, image_url, timestamp, is_external)
        VALUES (?, ?, ?, ?, ?, 0)`,
-      [
-        author,
-        text_content,
-        JSON.stringify(hashtag_text || []),
-        image_url || null,
-        ts
-      ]
+      [author, text_content, JSON.stringify(hashtag_text || []), image_url || null, ts]
     );
     return res.json({ success: true, post_id: result.insertId });
   } catch (err) {
@@ -361,7 +332,6 @@ export async function handleUserProfile(req, res) {
   try {
     const user  = await getUserById(userId);
     const posts = await getPostsByUser(userId);
-
     const db = get_db_connection();
     const [[{ followerCount }]] = await db.send_sql(
       "SELECT COUNT(*) AS followerCount FROM friends WHERE following = ?",
@@ -371,13 +341,7 @@ export async function handleUserProfile(req, res) {
       "SELECT COUNT(*) AS followingCount FROM friends WHERE follower = ?",
       [userId]
     );
-
-    return res.status(200).json({
-      username: user.username,
-      followerCount,
-      followingCount,
-      posts,
-    });
+    return res.status(200).json({ username: user.username, followerCount, followingCount, posts });
   } catch (err) {
     console.error("handleUserProfile error:", err);
     return res.status(500).json({ error: "Failed to load user profile" });
@@ -385,3 +349,42 @@ export async function handleUserProfile(req, res) {
 }
 
 
+
+export async function handleUserSearch(req, res) {
+  const { query } = req.body;
+  if (!query) return res.status(400).json({ error: "Missing search query" });
+
+  try {
+    const db = await get_db_connection().connect();
+    const [results] = await db.send_sql(
+      `SELECT user_id, username FROM users WHERE username LIKE ? LIMIT 10`,
+      [`%${query}%`]
+    );
+    res.json({ users: results });
+  } catch (err) {
+    console.error("User search failed:", err);
+    res.status(500).json({ error: "Database error searching users" });
+  }
+}
+
+export async function handlePostComment(req, res) {
+  const userId = req.session?.user?.userId;
+  const { postId, content } = req.body;
+
+  if (!userId || !postId || !content) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `INSERT INTO comments (post_id, user_id, text_content)
+       VALUES (?, ?, ?)`,
+      [postId, userId, content]
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("handlePostComment error:", err);
+    return res.status(500).json({ error: "Failed to submit comment" });
+  }
+}
