@@ -126,7 +126,7 @@ public class DBUtils {
         // Batch insert with foreachPartition
         postNodes.foreachPartition(iterator -> {
             try (Connection conn = getConnection()) {
-                String insertSQL = "INSERT INTO ranked_feed (user_id, post_id, score, rank) VALUES (?, ?, ?, ?)";
+                String insertSQL = "INSERT INTO ranked_feed (user_id, post_id, score, `rank`) VALUES (?, ?, ?, ?)";
                 try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
                     int batchCount = 0;
                     int totalInserts = 0;
@@ -150,7 +150,7 @@ public class DBUtils {
                             double score = entry.getValue();
                             
                             // Skip very small scores to reduce noise
-                            if (score < 0.0001) continue;
+                            //if (score < 0.0001) continue;
 
                             stmt.setInt(1, userId);
                             stmt.setInt(2, postId);
@@ -190,12 +190,12 @@ public class DBUtils {
             String updateSQL =
                 "UPDATE ranked_feed rf1 JOIN (" +
                 "    SELECT user_id, post_id, " +
-                "    @rank := IF(@current_user = user_id, @rank + 1, 1) AS rank, " +
+                "    @rank := IF(@current_user = user_id, @rank + 1, 1) AS `rank`, " +
                 "    @current_user := user_id " +
                 "    FROM ranked_feed, (SELECT @rank := 0, @current_user := 0) r " +
                 "    ORDER BY user_id, score DESC" +
                 ") rf2 ON rf1.user_id = rf2.user_id AND rf1.post_id = rf2.post_id " +
-                "SET rf1.rank = rf2.rank";
+                "SET rf1.`rank` = rf2.`rank`";
 
             try (Statement stmt = conn.createStatement()) {
             //System.out.printf("Inserting: user_id=%d, post_id=%d, score=%.4f%n", userId, postId, score);

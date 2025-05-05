@@ -100,7 +100,11 @@ public class Adsorption {
 
         // Step 1: Initialize label vectors for user nodes
         JavaPairRDD<String, Map<Integer, Double>> labels = initializeLabels(edges);
-        
+        System.out.println("Sample initialized labels:");
+            for (Tuple2<String, Map<Integer, Double>> entry : labels.take(5)) {
+                System.out.println("Node: " + entry._1 + ", Labels: " + entry._2);
+            }
+
         // Get all nodes for step 3
         JavaPairRDD<String, Object> allNodes = edges.flatMap(edge -> {
             List<String> nodes = new ArrayList<>();
@@ -118,7 +122,7 @@ public class Adsorption {
         System.out.println("DEBUG: Total post nodes in graph: " + postNodeCount);
 
         // Step 2: Run up to 15 iterations or until convergence
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 1; i++) {
             System.out.println("DEBUG: Starting iteration " + (i+1));
             
             // Propagate labels along edges
