@@ -113,10 +113,22 @@ public class DBUtils {
             e.printStackTrace();
         }
 
-        labelVectors.foreachPartition(iterator -> {
+        // Filter to only post nodes
+        JavaPairRDD<String, Map<Integer, Double>> postNodes = labelVectors.filter(record -> record._1.startsWith("p"));
+        long postNodeCount = postNodes.count();
+        System.out.println("DEBUG: Found " + postNodeCount + " post nodes to process for ranked feed");
+
+        if (postNodeCount == 0) {
+            System.out.println("WARNING: No post nodes found in label vectors! Check graph construction.");
+            return;
+        }
+
+        // Batch insert with foreachPartition
+        postNodes.foreachPartition(iterator -> {
             try (Connection conn = getConnection()) {
                 String insertSQL = "INSERT INTO ranked_feed (user_id, post_id, score, rank) VALUES (?, ?, ?, ?)";
                 try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+                    int batchCount = 0;
                     int totalInserts = 0;
 
                     while (iterator.hasNext()) {
@@ -124,27 +136,50 @@ public class DBUtils {
                         String nodeId = record._1;
                         Map<Integer, Double> scores = record._2;
 
-                        if (!nodeId.startsWith("p")) continue;
-
+                        // Extract post ID from node ID (strip the 'p' prefix)
                         int postId = Integer.parseInt(nodeId.substring(1));
+                        
+                        // Skip if this post has no user scores
+                        if (scores.isEmpty()) {
+                            System.out.println("DEBUG: Post " + postId + " has no user scores, skipping");
+                            continue;
+                        }
 
-                        int rowsInserted = 0;
                         for (Map.Entry<Integer, Double> entry : scores.entrySet()) {
                             int userId = entry.getKey();
                             double score = entry.getValue();
+                            
+                            // Skip very small scores to reduce noise
+                            if (score < 0.0001) continue;
 
                             stmt.setInt(1, userId);
                             stmt.setInt(2, postId);
                             stmt.setDouble(3, score);
-                            stmt.setInt(4, 0);
-                            rowsInserted += stmt.executeUpdate();
+                            stmt.setInt(4, 0); // Rank will be updated later
+                            
+                            stmt.addBatch();
+                            batchCount++;
+                            
+                            // Execute batch every 100 records
+                            if (batchCount >= 100) {
+                                int[] results = stmt.executeBatch();
+                                totalInserts += Arrays.stream(results).sum();
+                                batchCount = 0;
+                            }
                         }
-                        totalInserts += rowsInserted;
                     }
+                    
+                    // Execute any remaining batch items
+                    if (batchCount > 0) {
+                        int[] results = stmt.executeBatch();
+                        totalInserts += Arrays.stream(results).sum();
+                    }
+                    
                     System.out.println("DEBUG: Total records inserted into ranked_feed: " + totalInserts);
                 }
             } catch (SQLException | IOException e) {
                 System.err.println("ERROR in writeRankedPostsToMySQL: " + e.getMessage());
+                e.printStackTrace();
                 throw new RuntimeException("Error writing to database", e);
             }
         });
@@ -163,6 +198,7 @@ public class DBUtils {
                 "SET rf1.rank = rf2.rank";
 
             try (Statement stmt = conn.createStatement()) {
+            //System.out.printf("Inserting: user_id=%d, post_id=%d, score=%.4f%n", userId, postId, score);
                 int updatedRows = stmt.executeUpdate(updateSQL);
                 System.out.println("DEBUG: Updated ranks for " + updatedRows + " records");
             }

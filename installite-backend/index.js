@@ -92,7 +92,11 @@ async function startServer() {
         await storeUserEmbedding(userId, embedding);
 
         // 6) query ChromaDB
-        const actorMatches = await getTopFaceMatches(embedding, 5);
+        const actorMatches = await getTopFaceMatches(
+          req.body.userId,
+          embedding,
+          5
+        );
 
         return res.json({ success: true, imageUrl, actorMatches });
       } catch (err) {

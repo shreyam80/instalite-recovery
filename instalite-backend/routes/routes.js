@@ -39,7 +39,7 @@ import { getPostsByUser, getPostsForUser } from "../../posts.js";
 /* ---- chatbot helpers ---- */
 import { callChatbot } from "../../chatbot/chatbot.js";
 import {
-  ensureRetrieversReady,
+  createRetrieverFromDatabase,
   retrieveRelevantDocs
 } from "../../installite-backend/utils/vector.js";
 
@@ -214,7 +214,7 @@ export async function handleSearch(req, res) {
   try {
     if (!retrieverInitialized) {
       console.log("Initializing chatbot retrievers…");
-      await ensureRetrieversReady();
+      await createRetrieverFromDatabase();
       retrieverInitialized = true;
     }
     const docs   = await retrieveRelevantDocs(question);

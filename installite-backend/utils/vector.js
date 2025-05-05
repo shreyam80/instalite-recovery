@@ -45,20 +45,30 @@ export async function storeUserEmbedding(userId, embedding) {
   console.log(`Stored embedding for user ${userId}`);
 }
 
-export async function getTopFaceMatches(embedding, n = 5) {
+export async function getTopFaceMatches(userId, embedding, n = 5) {
   const coll = await ensureFaceCollectionExists();
+  // grab a few more in case we need to drop some
   const { ids, distances, metadatas } = await coll.query({
     queryEmbeddings: [embedding],
-    nResults: n,
-    include: ['distances', 'metadatas'],
+    nResults: n + 2,              // ask for 2 extra
+    include: ['distances','metadatas'],
   });
 
-  return ids[0].map((id, i) => ({
-    nconst: id,
-    name: metadatas[0][i]?.name,
+  // zip into an array of {nconst, name, imageUrl, distance}
+  const matches = ids[0].map((id, i) => ({
+    nconst:   id,
+    name:     metadatas[0][i]?.name,
     imageUrl: metadatas[0][i]?.imageUrl,
     distance: distances[0][i],
   }));
+
+  // drop entries that are “you” (same ID) or distance == 0
+  const filtered = matches.filter(m =>
+    m.nconst !== userId && m.distance > 0
+  );
+
+  // now return exactly n of the remaining
+  return filtered.slice(0, n);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,3 +139,5 @@ export async function ensureRetrieversReady() {
     retrieversInitialized = true;
   }
 }
+
+export const createRetrieverFromDatabase = ensureRetrieversReady;

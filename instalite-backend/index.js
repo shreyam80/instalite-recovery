@@ -4,7 +4,8 @@ import http from 'http';
 import registerRoutes from './routes/registerRoutes.js';
 import { initChatModule } from '../server/chat/chat.js'; 
 import { initSocketServer } from '../server/chat/websocket.js';
-import { ensureRetrieversReady } from '../installite-backend/utils/vector.js';
+import { createRetrieverFromDatabase } from '../installite-backend/utils/vector.js';
+
 
 import cors from 'cors';
 import session from 'express-session';
@@ -48,7 +49,7 @@ async function startServer() {
   initSocketServer(httpServer);          // spin up socket.io on port 3030
   // --------------------------------
 
-  await ensureRetrieversReady().catch(err => {
+  await createRetrieverFromDatabase().catch(err => {
     console.error('Failed to load retrievers:', err);
     process.exit(1);
   });  
