@@ -1,16 +1,26 @@
 // src/components/ChatWindow.jsx
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function ChatWindow({ title, messages, userId, onSend }) {
+export default function ChatWindow({
+  title,
+  messages,
+  userId,
+  members = [],    // ← now coming from ChatsPage
+  onSend
+}) {
+  // DEBUG: confirm we received the members prop
+  console.log("ChatWindow got members:", members);
+
   const [text, setText] = useState("");
   const scrollRef = useRef(null);
+  const navigate  = useNavigate();
 
-  // auto-scroll new messages into view
+  // Auto‑scroll when new messages arrive
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // handler to send message
   const send = async () => {
     const msg = text.trim();
     if (!msg) return;
@@ -23,19 +33,37 @@ export default function ChatWindow({ title, messages, userId, onSend }) {
       display: "flex",
       flexDirection: "column",
       height: "80vh",
-      minHeight: 0   // allow inner flex to shrink
+      minHeight: 0
     }}>
-      {/* Header */}
+      {/* Header: avatar strip + title */}
       <div style={{
+        display: "flex",
+        alignItems: "center",
         padding: "12px 16px",
         borderBottom: "1px solid #ddd",
-        fontWeight: "bold",
         background: "#f5f5f5"
       }}>
-        {title}
+        <div style={{ display: "flex", marginRight: 12 }}>
+          {members.map(u => (
+            <img
+              key={u.userId}
+              src={`http://localhost:3030/users/${u.userId}/image`}
+              alt={`${u.username}’s avatar`}
+              onClick={() => navigate(`/user/${u.username}`)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                marginRight: 4,
+                cursor: "pointer"
+              }}
+            />
+          ))}
+        </div>
+        <div style={{ fontWeight: "bold" }}>{title}</div>
       </div>
 
-      {/* Scrollable messages window */}
+      {/* Messages list */}
       <div style={{
         flex: 1,
         overflowY: "auto",
@@ -46,36 +74,37 @@ export default function ChatWindow({ title, messages, userId, onSend }) {
         minHeight: 0
       }}>
         {messages.map((m, i) => {
-          const mine = m.senderId === userId;
-          // build the avatar URL pointing at your redirect route
+          const mine      = m.senderId === userId;
           const avatarUrl = `http://localhost:3030/users/${m.senderId}/image`;
 
           return (
             <div
-                key={i}
-                style={{
-                    display: "flex",
-                    alignItems: "center",                       // vertical center
-                    justifyContent: mine ? "flex-end" : "flex-start", // push children left/right
-                    width: "100%",                               // span full width so justifyContent can work
-                    margin: "8px 0"
-                }}
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: mine ? "flex-end" : "flex-start",
+                width: "100%",
+                margin: "8px 0"
+              }}
             >
-              {/* avatar on left for other users */}
+              {/* Avatar on left for others */}
               {!mine && (
                 <img
                   src={avatarUrl}
                   alt={`${m.senderName}’s avatar`}
+                  onClick={() => navigate(`/user/${m.senderUsername}`)}
                   style={{
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    marginRight: 8
+                    marginRight: 8,
+                    cursor: "pointer"
                   }}
                 />
               )}
 
-              {/* message bubble */}
+              {/* Message bubble */}
               <div style={{
                 maxWidth: "75%",
                 padding: "8px",
@@ -83,26 +112,33 @@ export default function ChatWindow({ title, messages, userId, onSend }) {
                 background: mine ? "#dcf8c6" : "#eee",
                 textAlign: mine ? "right" : "left"
               }}>
-                <div style={{
-                  fontSize: "0.9em",
-                  marginBottom: 4,
-                  fontWeight: mine ? "bold" : "normal"
-                }}>
+                <div
+                  style={{
+                    fontSize: "0.9em",
+                    marginBottom: 4,
+                    fontWeight: mine ? "bold" : "normal",
+                    cursor: "pointer",
+                    textDecoration: "underline"
+                  }}
+                  onClick={() => navigate(`/user/${m.senderUsername}`)}
+                >
                   {m.senderName}
                 </div>
                 <div>{m.text}</div>
               </div>
 
-              {/* avatar on right for your own messages */}
+              {/* Avatar on right for yourself */}
               {mine && (
                 <img
                   src={avatarUrl}
                   alt="Your avatar"
+                  onClick={() => navigate(`/user/${m.senderUsername}`)}
                   style={{
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    marginLeft: 8
+                    marginLeft: 8,
+                    cursor: "pointer"
                   }}
                 />
               )}

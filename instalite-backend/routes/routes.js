@@ -490,4 +490,19 @@ export async function handleUserProfile(req, res) {
   }
 }
 
-
+/**
+ * GET /users/:userId
+ * Returns { userId, username, firstName, lastName } for that user.
+ */
+export async function handleGetUserById(req, res) {
+  const id = Number(req.params.userId);
+  if (!id) return res.status(400).json({ error: "Invalid userId" });
+  const u = await getUserById(id);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  return res.json({
+    userId:   u.user_id,
+    username: u.username,
+    firstName: u.first_name,
+    lastName:  u.last_name,
+  });
+}

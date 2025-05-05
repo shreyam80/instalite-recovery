@@ -35,8 +35,9 @@ import {
   handleGetInvites,
   handleGetUserChats,
 
-  /* mutuals */
+  /* mutuals/users */
   handleGetMutuals,
+  handleGetUserById,
 
   /* user image redirect */
   handleGetUserImage,
@@ -143,7 +144,8 @@ export default function registerRoutes(app) {
 
   /* ---------- MUTUALS ------------------------------------- */
   app.get("/mutuals", handleGetMutuals);
-
+  app.get("/users/:userId", handleGetUserById);
+  
   /* ---------- SESSION DEBUG (optional) -------------------- */
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
