@@ -9,7 +9,6 @@ import ChatsPage from './pages/ChatsPage';
 import SearchPage from './pages/SearchPage';
 import UserPage from './pages/UserPage';
 import SettingsPage from './pages/SettingsPage';
-import FriendsPage from "./pages/FriendsPage"; // Make sure this file exists later
 
 function App() {
   const navigate = useNavigate();
@@ -75,7 +74,6 @@ useEffect(() => {
         <Route path="/search" element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" />} />
         <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
         <Route path="/user" element={isAuthenticated ? <UserPage /> : <Navigate to="/login" />} />
-        <Route path="/friends" element={<FriendsPage />} />
         <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
       </Route>
     </Routes>

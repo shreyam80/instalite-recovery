@@ -5,7 +5,6 @@ import registerRoutes from './routes/registerRoutes.js';
 import { initChatModule } from '../server/chat/chat.js'; 
 import { initSocketServer } from '../server/chat/websocket.js';
 import { createRetrieverFromDatabase } from '../chatbot/vector.js';
-import { handleUserSearch } from './routes/routes.js';
 import cors from 'cors';
 import session from 'express-session';
 import dotenv from 'dotenv';
