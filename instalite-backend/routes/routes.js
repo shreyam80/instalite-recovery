@@ -3,8 +3,17 @@ import {
   authenticateUser,
   createUser,
   getUserImageByID,
-  getUserById
+  getUserById,
+  updateFirstName,
+  updateLastName,
+  updateUsername,
+  updateUserEmail,
+  updateAffiliation,
+  updateBirthday,
+  updateHashtags,
+  updateUserPassword
 } from "../../users.js";
+import bcrypt from "bcrypt";
 
 import { getIO } from "../../server/chat/websocket.js";
 import { get_db_connection } from "../../server/models/rdbms.js";
@@ -34,6 +43,109 @@ import {
 } from "../../installite-backend/utils/vector.js";
 
 let retrieverInitialized = false;
+
+/* ------------------------------------------------------------------ */
+/*  Settings                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /settings
+ * Returns the current user’s editable profile fields.
+ */
+export async function handleGetSettings(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  const u = await getUserById(userId);
+  if (!u) return res.status(404).json({ error: "User not found" });
+  return res.json({
+    firstName:   u.first_name,
+    lastName:    u.last_name,
+    username:    u.username,
+    email:       u.email,
+    affiliation: u.affiliation,
+    birthday:    u.birthday,
+    hashtags:    JSON.parse(u.hashtag_text || "[]")
+  });
+}
+
+
+/**
+ * POST /settings
+ * Updates any subset of the user’s editable fields.
+ */
+export async function handleUpdateSettings(req, res) {
+  const userId = req.session?.user?.userId;
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const {
+    firstName, lastName,
+    username,   email,
+    affiliation, birthday,
+    hashtags,
+    oldPassword, newPassword
+  } = req.body;
+
+  const errors = [];
+
+  // 1) If anything is changing, require & verify oldPassword
+  const changingProfile =
+    firstName || lastName || username ||
+    email || affiliation || birthday ||
+    (hashtags && hashtags.length > 0);
+  const changingPassword = Boolean(newPassword);
+
+  if (changingProfile || changingPassword) {
+    if (!oldPassword) {
+      return res.status(400)
+        .json({ errors: ["Current password is required to update settings"] });
+    }
+    const userRec = await getUserById(userId);
+    const ok = await bcrypt.compare(oldPassword, userRec.hashed_password);
+    if (!ok) {
+      return res.status(400)
+        .json({ errors: ["Current password is incorrect"] });
+    }
+  }
+
+  // 2) Apply profile updates
+  if (firstName   !== undefined) await updateFirstName(userId, firstName);
+  if (lastName    !== undefined) await updateLastName(userId, lastName);
+  if (username    !== undefined) {
+    const r = await updateUsername(userId, username);
+    if (r.error) errors.push(r.error);
+  }
+  if (email       !== undefined) {
+    const r = await updateUserEmail(userId, email);
+    if (r.error) errors.push(r.error);
+  }
+  if (affiliation !== undefined) await updateAffiliation(userId, affiliation);
+  if (birthday    !== undefined) {
+    const r = await updateBirthday(userId, birthday);
+    if (r.error) errors.push(r.error);
+  }
+  if (hashtags    !== undefined) {
+    if (!Array.isArray(hashtags)) {
+      errors.push("Hashtags must be an array of strings");
+    } else {
+      const r = await updateHashtags(userId, hashtags);
+      if (r.error) errors.push(r.error);
+    }
+  }
+
+  // 3) Finally handle password rotation
+  if (changingPassword) {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const r = await updateUserPassword(userId, hashed);
+    if (r.error) errors.push(r.error);
+  }
+
+  if (errors.length) {
+    return res.status(400).json({ errors });
+  }
+  return res.json({ success: true });
+}
+
+
 
 /* ------------------------------------------------------------------ */
 /*  AUTH                                                               */
@@ -171,8 +283,13 @@ export async function handleLeaveChat(req, res) {
 
 export async function handleInviteToChat(req, res) {
   const { chatId, inviterId, inviteeId } = req.body;
-  return res.json(await inviteToChat(chatId, inviterId, inviteeId));
+  const result = await inviteToChat(chatId, inviterId, inviteeId);
+  if (result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+  return res.json(result);
 }
+
 
 export async function handleAcceptInvite(req, res) {
   const { chatId, userId } = req.body;
@@ -266,3 +383,5 @@ export async function handleUserProfile(req, res) {
     return res.status(500).json({ error: "Failed to load user profile" });
   }
 }
+
+

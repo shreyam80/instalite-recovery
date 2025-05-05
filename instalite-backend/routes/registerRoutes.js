@@ -39,7 +39,11 @@ import {
   handleGetFriends,
 
   /* user image redirect */
-  handleGetUserImage
+  handleGetUserImage,
+
+  /* settings */
+  handleGetSettings,
+  handleUpdateSettings
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -139,4 +143,8 @@ export default function registerRoutes(app) {
   app.get("/session", (req, res) =>
     res.json({ sessionUser: req.session?.user || null })
   );
+
+  /* ---------- settings -------------------- */
+  app.post("/settings", requireSessionAuth, handleUpdateSettings);
+  app.get(  "/settings", requireSessionAuth, handleGetSettings);
 }

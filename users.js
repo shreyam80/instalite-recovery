@@ -69,13 +69,23 @@ export async function getUserById(userId) {
 export async function updateUserEmail(userId, newEmail) {
   try {
     const db = await get_db_connection().connect();
-    await db.send_sql("UPDATE users SET email = ? WHERE user_id = ?", [newEmail, userId]);
+    await db.send_sql(
+      "UPDATE users SET email = ? WHERE user_id = ?",
+      [newEmail, userId]
+    );
     return { success: true };
   } catch (err) {
     console.error("updateUserEmail error:", err);
+
+    // Duplicate‑email error from MySQL
+    if (err.code === "ER_DUP_ENTRY" && err.sqlMessage.includes("users.email")) {
+      return { error: "Email already registered." };
+    }
+
     return { error: "Failed to update email" };
   }
 }
+
 
 export async function updateUserPassword(userId, newHashedPassword) {
   try {
@@ -128,6 +138,97 @@ export async function getTopHashtags(userId) {
     return [];
   }
 }
+
+/**
+ * Update the first_name column for a user.
+ */
+export async function updateFirstName(userId, firstName) {
+  try {
+    const db = await get_db_connection().connect();
+    await db.send_sql(
+      "UPDATE users SET first_name = ? WHERE user_id = ?",
+      [firstName, userId]
+    );
+    return { success: true };
+  } catch (err) {
+    console.error("updateFirstName error:", err);
+    return { error: "Failed to update first name" };
+  }
+}
+
+/**
+ * Update the last_name column for a user.
+ */
+export async function updateLastName(userId, lastName) {
+  try {
+    const db = await get_db_connection().connect();
+    await db.send_sql(
+      "UPDATE users SET last_name = ? WHERE user_id = ?",
+      [lastName, userId]
+    );
+    return { success: true };
+  } catch (err) {
+    console.error("updateLastName error:", err);
+    return { error: "Failed to update last name" };
+  }
+}
+
+/**
+ * Update the username column for a user.
+ * Make sure to check for duplicates before calling this.
+ */
+export async function updateUsername(userId, username) {
+  try {
+    const db = await get_db_connection().connect();
+    await db.send_sql(
+      "UPDATE users SET username = ? WHERE user_id = ?",
+      [username, userId]
+    );
+    return { success: true };
+  } catch (err) {
+    console.error("updateUsername error:", err);
+    if (err.code === "ER_DUP_ENTRY" && err.sqlMessage.includes("users.username")) {
+      return { error: "Username already taken." };
+    }
+    return { error: "Failed to update username" };
+  }
+}
+
+/**
+ * Update the affiliation column for a user.
+ */
+export async function updateAffiliation(userId, affiliation) {
+  try {
+    const db = await get_db_connection().connect();
+    await db.send_sql(
+      "UPDATE users SET affiliation = ? WHERE user_id = ?",
+      [affiliation, userId]
+    );
+    return { success: true };
+  } catch (err) {
+    console.error("updateAffiliation error:", err);
+    return { error: "Failed to update affiliation" };
+  }
+}
+
+/**
+ * Update the birthday column for a user.
+ * Expects birthday in YYYY‑MM‑DD format (or another valid SQL date string).
+ */
+export async function updateBirthday(userId, birthday) {
+  try {
+    const db = await get_db_connection().connect();
+    await db.send_sql(
+      "UPDATE users SET birthday = ? WHERE user_id = ?",
+      [birthday, userId]
+    );
+    return { success: true };
+  } catch (err) {
+    console.error("updateBirthday error:", err);
+    return { error: "Failed to update birthday" };
+  }
+}
+
 
 export function getUserImageByID(userId) {
   return '/placeholder_profile_picture.png';

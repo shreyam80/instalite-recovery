@@ -87,13 +87,36 @@ export async function leaveChat(chatId, userId) {
 /*  INVITES                                                            */
 /* ------------------------------------------------------------------ */
 export async function inviteToChat(chatId, inviterId, inviteeId) {
+  // ── 1) ensure that user actually exists
+  const [userRows] = await db.send_sql(
+    'SELECT 1 FROM users WHERE user_id = ?',
+    [inviteeId]
+  );
+  if (userRows.length === 0) {
+    return { error: 'Invitee not found' };
+  }
+
+  // ── 2) ensure either inviter follows invitee OR vice‑versa
+  const [relRows] = await db.send_sql(
+    `SELECT 1
+       FROM friends
+      WHERE (follower = ? AND following = ?)
+         OR (follower = ? AND following = ?)`,
+    [inviterId, inviteeId, inviteeId, inviterId]
+  );
+  if (relRows.length === 0) {
+    return { error: 'Can only invite users you follow or who follow you' };
+  }
+
+  // ── 3) now do the invite
   await db.send_sql(
-    "INSERT INTO chat_invites (sender_user_id, recipient_user_id, chat_session_id) VALUES (?, ?, ?)",
+    'INSERT INTO chat_invites (sender_user_id, recipient_user_id, chat_session_id) VALUES (?, ?, ?)',
     [inviterId, inviteeId, chatId]
   );
   emitInvite(inviteeId, chatId, inviterId);
   return { success: true };
 }
+
 
 export async function acceptChatInvite(chatId, userId) {
   const [pending] = await db.send_sql(

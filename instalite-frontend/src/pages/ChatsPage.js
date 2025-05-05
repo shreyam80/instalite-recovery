@@ -235,14 +235,32 @@ export default function ChatsPage() {
   }
 
   // Create new chat
+  // Create new chat (with validation)
   async function createChat() {
     if (!friends.length) return alert("No friends to chat with.");
-    const choice = prompt(
-      "Start chat with which friend?\n" +
-      friends.map(f => `${f.userId}: ${f.firstName} ${f.lastName}`).join("\n")
+
+    // Only include friends you’re not already chatting with:
+    const options = friends.filter(f => 
+      !chats.some(c => c.members.includes(f.userId))
     );
+    if (!options.length) {
+      return alert("You’re already in a chat with all your friends!");
+    }
+
+    // Build the prompt from the filtered list
+    const promptText =
+      "Start chat with which friend?\n" +
+      options.map(f => `${f.userId}: ${f.firstName} ${f.lastName}`).join("\n");
+
+    const choice = prompt(promptText);
     if (!choice) return;
+
+    // Parse and validate the ID
     const otherId = Number(choice.split(":")[0].trim());
+    if (isNaN(otherId) || !options.some(f => f.userId === otherId)) {
+      alert("Invalid selection. Please pick one of the IDs shown.");
+      return;
+    }
 
     // 1) create or fetch session
     const { chatId } = await fetch("http://localhost:3030/chat/create", {
@@ -251,7 +269,7 @@ export default function ChatsPage() {
       body:    JSON.stringify({ members: [uid, otherId] })
     }).then(r => r.json());
 
-    // 2) update UI & join socket with callback
+    // 2) update UI & join socket
     setChats(prev => [...prev, { chatId, members: [uid, otherId], name: null }]);
     setActive(chatId);
     socket.emit("joinChat", chatId, () => {});
@@ -265,6 +283,7 @@ export default function ChatsPage() {
       body:    JSON.stringify({ chatId, inviterId: uid, inviteeId: otherId })
     });
   }
+
 
   // Render
   return (
