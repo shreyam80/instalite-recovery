@@ -4,32 +4,33 @@ import socket from "../socket";
 import ChatWindow from "../components/ChatWindow";
 
 // Helpers
-const uid = Number(localStorage.getItem("userId"));
+
 // Make normalizeMembers safe on undefined
 const normalizeMembers = (arr = []) =>
   [...new Set(arr.map(Number))].sort((a, b) => a - b);
-const idToName = (friends, id) =>
-  id === uid
-    ? "You"
-    : friends.find(f => f.userId === id)?.firstName || `User ${id}`;
+const idToName        = (list, id) =>  
+  id === uid  
+    ? "You"  
+    : list.find(u => u.userId === id)?.firstName || `User ${id}`;
 
 // Pretty members for default labels
-const prettyMembers = (members, friends) =>
-  normalizeMembers(members)
-    .filter(id => id !== uid)
-    .map(id => idToName(friends, id))
+const prettyMembers   = (members, list) =>  
+  normalizeMembers(members)  
+    .filter(id => id !== uid)  
+    .map(id => idToName(list, id))  
     .join(", ") || "You";
 
 // Chat label: use custom name or default to member list
-const chatLabel = (chat, friends) =>
-  chat.name?.trim() || prettyMembers(chat.members, friends);
+const chatLabel       = (chat, list) =>  
+  chat.name?.trim() || prettyMembers(chat.members, list);
 
 export default function ChatsPage() {
+  const uid = Number(localStorage.getItem("userId"));
   const [chats, setChats] = useState([]);    // [{ chatId, name, members }]
   const [history, setHistory] = useState({});// { chatId: [ {senderId,text,senderName} ] }
   const [active, setActive] = useState(null); // current chatId
   const [invites, setInvites] = useState([]); // [{ chatId, senderId, chatName }]
-  const [friends, setFriends] = useState([]); // [{ userId, firstName, lastName }]
+  const [mutuals, setMutuals] = useState([]);
   const joinedRooms = useRef(new Set());
 
   // Fetch chats & histories
@@ -58,12 +59,12 @@ export default function ChatsPage() {
           ...prev,
           [c.chatId]: h.map(m => ({
             ...m,
-            senderName: idToName(friends, m.senderId)
+            senderName: idToName(mutuals, m.senderId)
           }))
         }));
       }
     }
-  }, [active, friends, history]);
+  }, [active, mutuals, history]);
 
   // Fetch invites
   const loadInvites = useCallback(async () => {
@@ -73,20 +74,20 @@ export default function ChatsPage() {
     setInvites(inv);
   }, []);
 
-  // Fetch friends
-  const loadFriends = useCallback(() => {
-    fetch(`http://localhost:3030/friends?userId=${uid}`)
+  // Fetch mutuals
+  const loadMutuals = useCallback(() => {
+    fetch(`http://localhost:3030/mutuals?userId=${uid}`)
       .then(r => r.json())
-      .then(setFriends)
+      .then(setMutuals)
       .catch(console.error);
   }, []);
 
   // Initial load
   useEffect(() => {
-    loadFriends();
+    loadMutuals();
     loadChats();
     loadInvites();
-  }, [loadChats, loadInvites, loadFriends]);
+  }, [loadChats, loadInvites, loadMutuals]);
 
   // Join socket rooms
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function ChatsPage() {
           ...(prev[msg.chatId] || []),
           {
             senderId:   msg.senderId,
-            senderName: idToName(friends, msg.senderId),
+            senderName: idToName(mutuals, msg.senderId),
             text:       msg.text
           }
         ]
@@ -164,7 +165,7 @@ export default function ChatsPage() {
       socket.off("userLeftRoom",   onUserLeft);
       socket.off("chatRenamed",    onRenamed);
     };
-  }, [active, friends, loadChats, loadInvites]);
+  }, [active, mutuals, loadChats, loadInvites]);
 
   // REST actions
   async function acceptInvite(chatId) {
@@ -191,7 +192,7 @@ export default function ChatsPage() {
   async function sendInvite(chatId) {
     const chat     = chats.find(c => c.chatId === chatId);
     const existing = new Set(chat.members);
-    const options  = friends.filter(f => !existing.has(f.userId));
+    const options  = mutuals.filter(f => !existing.has(f.userId));
     if (!options.length) return alert("No friends left to invite.");
     const choice = prompt(
       "Invite which friend?\n" +
@@ -237,10 +238,10 @@ export default function ChatsPage() {
   // Create new chat
   // Create new chat (with validation)
   async function createChat() {
-    if (!friends.length) return alert("No friends to chat with.");
+    if (!mutuals.length) return alert("No friends to chat with.");
 
     // Only include friends you’re not already chatting with:
-    const options = friends.filter(f => 
+    const options = mutuals.filter(f => 
       !chats.some(c => c.members.includes(f.userId))
     );
     if (!options.length) {
@@ -299,11 +300,11 @@ export default function ChatsPage() {
               const label = inv.chatName
                 ? inv.chatName
                 : chat
-                  ? chatLabel(chat, friends)
+                  ? chatLabel(chat, mutuals)
                   : `Chat ${inv.chatId}`;
               return (
                 <div key={inv.chatId} style={{ marginBottom: 8 }}>
-                  <strong>{idToName(friends, inv.senderId)}</strong> invited you to{" "}
+                  <strong>{idToName(mutuals, inv.senderId)}</strong> invited you to{" "}
                   <strong>{label}</strong><br/>
                   <button onClick={() => acceptInvite(inv.chatId)}>Accept</button>{" "}
                   <button onClick={() => rejectInvite(inv.chatId)}>Reject</button>
@@ -331,8 +332,8 @@ export default function ChatsPage() {
                 background: c.chatId === active ? "#eef" : undefined
               }}
             >
-              <strong>{chatLabel(c, friends)}</strong><br/>
-              <small>({prettyMembers(c.members, friends)})</small><br/>
+              <strong>{chatLabel(c, mutuals)}</strong><br/>
+              <small>({prettyMembers(c.members, mutuals)})</small><br/>
               <button
                 style={{ fontSize: "0.8em", marginRight: 4 }}
                 onClick={e => { e.stopPropagation(); renameChat(c.chatId); }}

@@ -26,6 +26,7 @@ export default function Layout() {
     height: ICON_SIZE,
     cursor: "pointer",
     display: "block",
+    marginBottom: 24,
   };
 
   // direct‐redirect to profile image
@@ -40,16 +41,16 @@ export default function Layout() {
           flexDirection: "column",
           alignItems: "center",
           paddingTop: 24,
-          paddingBottom: 24,        // added bottom padding
+          paddingBottom: 24,
           borderRight: "1px solid #ddd",
           boxSizing: "border-box",
         }}
       >
-        {/* Top logo (optional) */}
+        {/* Logo */}
         <img
           src="/icons/logo.svg"
           alt="Logo"
-          style={{ ...iconStyle, marginBottom: 24 }}
+          style={iconStyle}
           onClick={() => navigate("/feed")}
         />
 
@@ -57,7 +58,7 @@ export default function Layout() {
         <img
           src="/icons/home.svg"
           alt="Home"
-          style={{ ...iconStyle, marginBottom: 24 }}
+          style={iconStyle}
           onClick={() => navigate("/feed")}
         />
 
@@ -65,15 +66,31 @@ export default function Layout() {
         <img
           src="/icons/search.svg"
           alt="Search"
-          style={{ ...iconStyle, marginBottom: 24 }}
+          style={iconStyle}
           onClick={() => navigate("/search")}
+        />
+
+        {/* Create Post */}
+        <img
+          src="/icons/create_post.svg"
+          alt="Create Post"
+          style={iconStyle}
+          onClick={() => navigate("/post/create")}
+        />
+
+        {/* Friends */}
+        <img
+          src="/icons/search_users.svg"
+          alt="Search Users"
+          style={iconStyle}
+          onClick={() => navigate("/users/search")}
         />
 
         {/* Chats */}
         <img
           src="/icons/send.svg"
           alt="Chats"
-          style={{ ...iconStyle, marginBottom: 24 }}
+          style={iconStyle}
           onClick={() => navigate("/chats")}
         />
 
@@ -90,8 +107,8 @@ export default function Layout() {
             height: PROFILE_SIZE,
             borderRadius: "50%",
             cursor: "pointer",
-            marginBottom: 16,       // slightly reduced bottom margin
             objectFit: "cover",
+            marginBottom: 16,
           }}
         />
 
@@ -100,7 +117,7 @@ export default function Layout() {
           <img
             src="/icons/menu.svg"
             alt="Menu"
-            style={iconStyle}
+            style={{ width: ICON_SIZE, height: ICON_SIZE, cursor: "pointer" }}
             onClick={() => setMenuOpen((o) => !o)}
           />
 
@@ -132,10 +149,10 @@ export default function Layout() {
                   cursor: "pointer",
                   transition: "background 0.2s",
                 }}
-                onMouseEnter={e =>
+                onMouseEnter={(e) =>
                   (e.currentTarget.style.background = "#f5f5f5")
                 }
-                onMouseLeave={e =>
+                onMouseLeave={(e) =>
                   (e.currentTarget.style.background = "transparent")
                 }
               >
@@ -158,10 +175,10 @@ export default function Layout() {
                   cursor: "pointer",
                   transition: "background 0.2s",
                 }}
-                onMouseEnter={e =>
+                onMouseEnter={(e) =>
                   (e.currentTarget.style.background = "#f5f5f5")
                 }
-                onMouseLeave={e =>
+                onMouseLeave={(e) =>
                   (e.currentTarget.style.background = "transparent")
                 }
               >

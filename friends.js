@@ -24,3 +24,22 @@ export async function getFriendsForUser(userId) {
 
   return rows;  // [ { userId, firstName, lastName }, … ]
 }
+
+export async function getMutualsForUser(userId) {
+  await db.connect();
+  const [rows] = await db.send_sql(
+    `SELECT
+       u.user_id     AS userId,
+       u.first_name  AS firstName,
+       u.last_name   AS lastName
+     FROM friends f1
+     JOIN friends f2
+       ON f1.following = f2.follower
+      AND f1.follower  = f2.following
+     JOIN users u
+       ON u.user_id    = f1.following
+     WHERE f1.follower = ?`,
+    [userId]
+  );
+  return rows;
+}
