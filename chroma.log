@@ -54686,3 +54686,13 @@
 [32mINFO[0m:     [05-05-2025 18:39:02] 127.0.0.1:52094 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/abc116d5-a94d-4a57-b271-cfec62e67006/query?limit=4 HTTP/1.1" 200
 [32mINFO[0m:     [05-05-2025 18:39:02] 127.0.0.1:52094 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/b4d2cc54-1d64-4def-930f-6462180a630e/query?limit=4 HTTP/1.1" 200
 [32mINFO[0m:     [05-05-2025 18:39:03] 127.0.0.1:52094 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/abc116d5-a94d-4a57-b271-cfec62e67006/query?limit=4 HTTP/1.1" 200
+[33mWARNING[0m:  [06-05-2025 01:58:15] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [06-05-2025 01:58:15] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [06-05-2025 01:58:15] Starting component System
+[36mDEBUG[0m:    [06-05-2025 01:58:15] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [06-05-2025 01:58:15] Starting component SqliteDB
+[33mWARNING[0m:  [06-05-2025 01:58:56] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [06-05-2025 01:58:56] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [06-05-2025 01:58:56] Starting component System
+[36mDEBUG[0m:    [06-05-2025 01:58:56] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [06-05-2025 01:58:56] Starting component SqliteDB
