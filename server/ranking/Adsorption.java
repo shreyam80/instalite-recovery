@@ -93,6 +93,8 @@ import java.util.*;
 
 public class Adsorption {
 
+    private static final double ALPHA = 0.85;
+
     // Each node has a label vector: Map<Integer, Double>
     public static JavaPairRDD<String, Map<Integer, Double>> run(
             JavaSparkContext sc,
@@ -100,6 +102,8 @@ public class Adsorption {
 
         // Step 1: Initialize label vectors for user nodes
         JavaPairRDD<String, Map<Integer, Double>> labels = initializeLabels(edges);
+        JavaPairRDD<String, Map<Integer, Double>> restartLabels = labels;
+
         System.out.println("Sample initialized labels:");
             for (Tuple2<String, Map<Integer, Double>> entry : labels.take(5)) {
                 System.out.println("Node: " + entry._1 + ", Labels: " + entry._2);
@@ -122,24 +126,38 @@ public class Adsorption {
         System.out.println("DEBUG: Total post nodes in graph: " + postNodeCount);
 
         // Step 2: Run up to 15 iterations or until convergence
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 2; i++) {
             System.out.println("DEBUG: Starting iteration " + (i+1));
             
             // Propagate labels along edges
             JavaPairRDD<String, Map<Integer, Double>> newMessages = propagateLabels(edges, labels);
             
             // Merge with existing labels to preserve the initialization for user nodes
-            JavaPairRDD<String, Map<Integer, Double>> combined = newMessages.union(labels)
-                .reduceByKey((map1, map2) -> {
-                    Map<Integer, Double> merged = new HashMap<>(map1);
-                    for (Map.Entry<Integer, Double> entry : map2.entrySet()) {
-                        merged.merge(entry.getKey(), entry.getValue(), Double::sum);
-                    }
-                    return merged;
-                });
-                
-            // Normalize label vectors
-            labels = normalizeLabels(combined);
+            // Step 3: Add restart (jumping) logic
+JavaPairRDD<String, Map<Integer, Double>> combinedWithRestart = newMessages.leftOuterJoin(restartLabels)
+    .mapToPair(pair -> {
+        String nodeId = pair._1;
+        Map<Integer, Double> propagated = pair._2._1;
+        Map<Integer, Double> restart = pair._2._2.orElse(new HashMap<>());
+
+        Map<Integer, Double> blended = new HashMap<>();
+
+        // Propagated labels with alpha
+        for (Map.Entry<Integer, Double> entry : propagated.entrySet()) {
+            blended.put(entry.getKey(), ALPHA * entry.getValue());
+        }
+
+        // Restart labels with (1 - alpha)
+        for (Map.Entry<Integer, Double> entry : restart.entrySet()) {
+            blended.merge(entry.getKey(), (1 - ALPHA) * entry.getValue(), Double::sum);
+        }
+
+        return new Tuple2<>(nodeId, blended);
+    });
+
+// Step 4: Normalize after blending
+labels = normalizeLabels(combinedWithRestart);
+
             
             // Debug info for this iteration
             long nodesWithLabels = labels.count();
