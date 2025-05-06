@@ -75,7 +75,7 @@ export default function Layout() {
           src="/icons/create_post.svg"
           alt="Create Post"
           style={iconStyle}
-          onClick={() => navigate("/post/create")}
+          onClick={() => navigate("/feed?create=true")}
         />
 
         {/* Friends */}
