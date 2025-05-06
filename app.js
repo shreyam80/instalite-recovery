@@ -6,6 +6,9 @@ CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 import { saveKafkaPost } from "./kafka_db.js";
 import testRouter from './testRouter.js';
 import { getIO } from './server/chat/websocket.js';
+import requireSessionAuth from './react-backend/routes/registerRoutes.js';
+import { handleUserSearch } from './instalite-backend/routes/routes.js';
+
 
 
 import fs from 'fs';
@@ -109,7 +112,7 @@ const run = async () => {
 run().catch(console.error);
 app.use(express.json()); // already using express — enable JSON body parsing
 app.use('/test', testRouter); // now you can call POST /test/create
+app.post("/user/search", requireSessionAuth, handleUserSearch);
 app.listen(config.port, () => {
     console.log(`App is listening on port ${config.port}`);
-app.post("/user/search", requireSessionAuth, handleUserSearch);
 });
