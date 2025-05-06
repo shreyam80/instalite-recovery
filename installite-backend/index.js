@@ -55,7 +55,7 @@ async function startServer() {
   // S3 bucket check
   console.log("→ Using S3 bucket:", process.env.S3_BUCKET);
   if (!process.env.S3_BUCKET) {
-    console.error("❌ Missing S3_BUCKET env var—set that in your .env!");
+    console.error("Missing S3_BUCKET env var—set that in your .env!");
     process.exit(1);
   }
 
@@ -101,7 +101,7 @@ async function startServer() {
         return res.json({ success: true, imageUrl, actorMatches });
       } catch (err) {
         // log full error
-        console.error('♻️ Error in /uploadProfileImage:', err);
+        console.error('Error in /uploadProfileImage:', err);
         // send message + top of stack back to client
         return res.status(500).json({
           error: err.message,

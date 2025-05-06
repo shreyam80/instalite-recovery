@@ -4,6 +4,7 @@ import axios from "axios";
 
 const FeedPage = () => {
   const [posts, setPosts] = useState([]);
+  const [currentUsername, setCurrentUsername] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -13,8 +14,6 @@ const FeedPage = () => {
   const [commentInputs, setCommentInputs] = useState({});
   const navigate = useNavigate();
 
-
-  // Fetch session and feed on mount
   useEffect(() => {
     async function checkSessionAndFetchFeed() {
       try {
@@ -27,6 +26,8 @@ const FeedPage = () => {
           return;
         }
 
+        setCurrentUsername(sessionData.sessionUser.username);
+
         const feedRes = await fetch("http://localhost:3030/feed", {
           method: "POST",
           credentials: "include",
@@ -38,7 +39,6 @@ const FeedPage = () => {
         }
 
         setPosts(feedData);
-        console.log("Feed data:", feedData);
       } catch (err) {
         console.error("Feed fetch error:", err);
         setError("Could not connect to server");
@@ -50,13 +50,6 @@ const FeedPage = () => {
     checkSessionAndFetchFeed();
   }, [navigate]);
 
-  useEffect(() => {
-    if (posts.length > 0) {
-      console.log("✅ Updated posts state:", posts);
-    }
-  }, [posts]);
-
-  // Handle post submission
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -65,7 +58,6 @@ const FeedPage = () => {
       .split(',')
       .map(tag => tag.trim())
       .filter(tag => tag.length > 0);
-
     formData.append('hashtag_text', JSON.stringify(tagsArray));
 
     if (imageFile) {
@@ -76,14 +68,12 @@ const FeedPage = () => {
       await axios.post('http://localhost:3030/post/create', formData, {
         withCredentials: true,
       });
-      alert('Post created!');
+
       setTextContent('');
       setHashtags('');
       setImageFile(null);
       setShowModal(false);
 
-      // Refetch feed after new post
-      setLoading(true);
       const refreshedFeed = await fetch("http://localhost:3030/feed", {
         method: "POST",
         credentials: "include",
@@ -93,8 +83,6 @@ const FeedPage = () => {
     } catch (err) {
       console.error(err);
       alert('Error creating post.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -123,6 +111,25 @@ const FeedPage = () => {
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:3030/posts/${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Delete failed");
+
+      setPosts((prev) => prev.filter((p) => p.postId !== postId));
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete post.");
+    }
+  };
+
   return (
     <div style={{ padding: "2rem" }}>
       <h2>Welcome to your Feed</h2>
@@ -138,6 +145,7 @@ const FeedPage = () => {
           {posts.map((post, idx) => {
             const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
 
+            // Debug logs
             return (
               <div
                 key={idx}
@@ -151,6 +159,10 @@ const FeedPage = () => {
               >
                 <strong>@{post.author}</strong>
                 <p>{post.text}</p>
+
+                <p style={{ fontSize: '0.75rem', color: 'gray' }}>
+                  DEBUG: post.author = {post.author}, currentUsername = {currentUsername}
+                </p>
 
                 {hashtags.length > 0 && (
                   <div style={{ marginTop: '0.5rem' }}>
@@ -217,6 +229,23 @@ const FeedPage = () => {
                   }}
                   style={{ marginTop: "0.5rem", width: "100%" }}
                 />
+
+                {post.author?.trim().toLowerCase() === currentUsername?.trim().toLowerCase() && (
+                  <button
+                    onClick={() => handleDeletePost(post.postId)}
+                    style={{
+                      marginTop: '0.5rem',
+                      backgroundColor: '#ffdddd',
+                      border: '1px solid #ffaaaa',
+                      color: '#aa0000',
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Delete Post
+                  </button>
+                )}
               </div>
             );
           })}

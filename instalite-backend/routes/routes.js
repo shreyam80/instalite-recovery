@@ -34,7 +34,7 @@ import {
 } from "../../server/chat/chat.js";
 
 import { getMutualsForUser } from "../../friends.js";
-import { getPostsByUser, getPostsForUser } from "../../posts.js";
+import { getPostsByUser, getPostsForUser, deletePost } from "../../posts.js";
 
 /* ---- chatbot helpers ---- */
 import { callChatbot } from "../../chatbot/chatbot.js";
@@ -551,4 +551,20 @@ export async function handlePostComment(req, res) {
     console.error("handlePostComment error:", err);
     return res.status(500).json({ error: "Failed to submit comment" });
   }
+}
+
+export async function handleDeletePost(req, res) {
+  const userId = req.session?.user?.userId;
+  const postId = Number(req.params.postId);
+
+  if (!userId || !postId) {
+    return res.status(400).json({ error: "Missing user or post ID" });
+  }
+
+  const result = await deletePost(postId, userId);
+  if (result.error) {
+    return res.status(403).json({ error: result.error });
+  }
+
+  return res.json({ success: true });
 }
