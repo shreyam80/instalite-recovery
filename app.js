@@ -57,18 +57,13 @@ const run = async () => {
 
             try {
                 const parsed = JSON.parse(raw);
-                // if (parsed.type === 'comment') {
-                //     console.log(`[${topic}] Received comment:`, parsed);
-                //     await saveKafkaComment(parsed); // we’ll write this next
-                //     return;
-                //   }
                 let postToSave;
 
                 if (topic === "Bluesky-Kafka") {
-                    // 🔄 Username normalization (Spec: create dummy/proxy user IDs)
+                    // Username normalization (Spec: create dummy/proxy user IDs)
                     const normalizedUsername = `bluesky_${parsed.author?.displayName.replace(/\s+/g, "_").toLowerCase() || "user"}`;
 
-                    // 🏷 Hashtag extraction (Spec: hashtags could be inside post text)
+                    // Hashtag extraction (Spec: hashtags could be inside post text)
                     const hashtags = extractHashtags(parsed.text);
 
                     postToSave = {
@@ -104,9 +99,9 @@ const normalizedUsername = `federated_${rawUsername.toLowerCase()}`;
                 const io = getIO();
             if (io) {
             io.emit('newPost', postToSave);
-            console.log("📢 Emitted newPost to socket clients:", postToSave);
+            console.log("Emitted newPost to socket clients:", postToSave);
             } else {
-            console.warn("⚠️ Socket.io not initialized; skipping emit.");
+            console.warn("Socket.io not initialized; skipping emit.");
             }
 
             } catch (err) {

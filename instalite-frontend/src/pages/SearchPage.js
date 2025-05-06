@@ -1,6 +1,7 @@
 // src/pages/SearchPage.js
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function SearchPage() {
   const [question, setQuestion] = useState("");
@@ -88,8 +89,8 @@ export default function SearchPage() {
           <h4>Related Users:</h4>
           {users.map((u) => (
             <div key={u.user_id} style={{ padding: "0.5rem 0" }}>
-              @{u.username}
-            </div>
+            <Link to={`/user/${u.username}`}>@{u.username}</Link>
+          </div>
           ))}
         </div>
       )}
