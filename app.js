@@ -6,6 +6,9 @@ CompressionCodecs[CompressionTypes.Snappy] = SnappyCodec;
 import { saveKafkaPost } from "./kafka_db.js";
 import testRouter from './testRouter.js';
 import { getIO } from './server/chat/websocket.js';
+import requireSessionAuth from './react-backend/routes/registerRoutes.js';
+import { handleUserSearch } from './instalite-backend/routes/routes.js';
+
 
 
 import fs from 'fs';
@@ -26,6 +29,7 @@ let kafka_messages = [];
 
 // Helper: extract hashtags from post text
 function extractHashtags(text) {
+    if (typeof text !== 'string') return [];
     return (text.match(/#[\w]+/g) || []).map(tag => tag.slice(1).toLowerCase());
 }
 
@@ -79,7 +83,8 @@ const run = async () => {
                     };
                 } else {
                     // FederatedPosts (Spec: reuse backend logic but use proxy IDs)
-                    const normalizedUsername = `federated_${parsed.username.toLowerCase()}`;
+                    const rawUsername = parsed.username || 'unknown_user';
+const normalizedUsername = `federated_${rawUsername.toLowerCase()}`;
                     const hashtags = extractHashtags(parsed.post_text);
                     postToSave = {
                         ...parsed,
@@ -96,8 +101,13 @@ const run = async () => {
                 await saveKafkaPost(postToSave);
 
                 // inside your Kafka consumer's eachMessage block:
-                getIO().emit('newPost', postToSave);
-                console.log("📢 Emitted newPost to socket clients:", postToSave);
+                const io = getIO();
+            if (io) {
+            io.emit('newPost', postToSave);
+            console.log("📢 Emitted newPost to socket clients:", postToSave);
+            } else {
+            console.warn("⚠️ Socket.io not initialized; skipping emit.");
+            }
 
             } catch (err) {
                 console.error("Error parsing Kafka message:", err);
@@ -109,7 +119,7 @@ const run = async () => {
 run().catch(console.error);
 app.use(express.json()); // already using express — enable JSON body parsing
 app.use('/test', testRouter); // now you can call POST /test/create
+app.post("/user/search", requireSessionAuth, handleUserSearch);
 app.listen(config.port, () => {
     console.log(`App is listening on port ${config.port}`);
-app.post("/user/search", requireSessionAuth, handleUserSearch);
 });
