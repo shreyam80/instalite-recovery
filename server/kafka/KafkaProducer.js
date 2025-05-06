@@ -12,10 +12,10 @@ const run = async () => {
   await producer.connect();
 
   const message = {
-    username: 'shreya',
+    username: 'shreya2',
     source_site: 'g01',
     post_uuid_within_site: uuidv4(),
-    post_text: 'hello from kafka!',
+    post_text: 'hello from kafka 2!',
     content_type: 'text/plain',
     attach: null
   };

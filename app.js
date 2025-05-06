@@ -29,6 +29,7 @@ let kafka_messages = [];
 
 // Helper: extract hashtags from post text
 function extractHashtags(text) {
+    if (typeof text !== 'string') return [];
     return (text.match(/#[\w]+/g) || []).map(tag => tag.slice(1).toLowerCase());
 }
 

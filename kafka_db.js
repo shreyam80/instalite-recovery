@@ -15,14 +15,15 @@ export async function saveKafkaPost(post) {
 
     if (rows.length === 0) {
       const insertUserSql = `
-        INSERT INTO users (username, email, first_name, last_name)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO users (username, email, first_name, last_name, hashed_password)
+        VALUES (?, ?, ?, ?, ?)
       `;
       await db.insert_items(insertUserSql, [
         post.username,
         `${post.username}@external.com`, // dummy email
         post.username,
-        'Kafka'
+        'Kafka', 
+        'kafka_user_dummy_password'
       ]);
 
       // re-fetch the new user_id
