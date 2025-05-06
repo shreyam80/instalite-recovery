@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
 const FeedPage = () => {
@@ -13,6 +13,16 @@ const FeedPage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Proper placement
+
+  // Trigger modal if coming from ?create=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("create") === "true") {
+      setShowModal(true);
+      navigate("/feed", { replace: true });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     async function checkSessionAndFetchFeed() {
@@ -145,7 +155,6 @@ const FeedPage = () => {
           {posts.map((post, idx) => {
             const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
 
-            // Debug logs
             return (
               <div
                 key={idx}

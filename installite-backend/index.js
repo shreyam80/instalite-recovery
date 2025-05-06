@@ -26,6 +26,20 @@ import { updateUserRecord, createStatusPost } from './utils/db.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
+async function handleSelectActor(req, res) {
+  const { userId, actorId, imageUrl } = req.body;
+  // 1) record the actor → user link
+  await updateUserRecord(userId, { linkedActorId: actorId });
+  // 2) save the actual image URL in the users table
+  await updateUserRecord(userId, { profile_image_url: imageUrl });
+  // (optionally) status post
+  await createStatusPost(
+    userId,
+    `User ${userId} is now linked to actor ${actorId}`
+  );
+  res.json({ success: true });
+}
+
 async function startServer() {
   // 1) Initialize chatbot retriever
   console.log('→ Initializing Chatbot retriever…');
@@ -120,6 +134,8 @@ async function startServer() {
       }
 
       await updateUserRecord(userId, { linkedActorId: actorId });
+      await updateUserRecord(userId, { profileImageUrl: imageUrl });
+      res.json({ success: true });
       await createStatusPost(
         userId,
         `User ${userId} is now linked to actor ${actorId}`

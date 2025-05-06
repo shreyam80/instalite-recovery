@@ -36,4 +36,5 @@ import {
     app.get("/chat/history", handleGetChatHistory);
     app.get("/chat/invites", handleGetInvites);
     app.get("/chat/sessions", handleGetUserChats);
+
   }

@@ -93,10 +93,19 @@ export default function UserPage() {
   if (error) return <div style={{ color: "red" }}>{error}</div>;
   if (!profile) return <p>Loading...</p>;
 
+  const myPic = localStorage.getItem("profileImageUrl");
+
   const { username, followerCount, followingCount, posts } = profile;
 
   return (
     <div style={{ padding: "2rem" }}>
+      {myPic && (
+        <img
+          src={myPic}
+          alt="You"
+          style={{ width:100, height:100, borderRadius:"50%", marginBottom:16 }}
+        />
+      )}
       <h2>@{username}</h2>
       <p>Followers: {followerCount}</p>
       <p>Following: {followingCount}</p>
