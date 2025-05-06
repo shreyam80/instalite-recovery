@@ -139,7 +139,6 @@ export default function RegisterPage() {
         <input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
         <input type="date" name="birthday" placeholder="Birthday" value={formData.birthday} onChange={handleChange} required />
         <input name="affiliation" placeholder="Affiliation" value={formData.affiliation} onChange={handleChange} />
-        <input name="profile_image_url" placeholder="Profile Image URL (optional)" value={formData.profile_image_url} onChange={handleChange} />
         <input name="hashtag_text" placeholder="Hashtags (comma-separated)" value={formData.hashtag_text} onChange={handleChange} />
 
         {error && <div className="error">{error}</div>}
