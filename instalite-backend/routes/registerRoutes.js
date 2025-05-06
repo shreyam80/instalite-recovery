@@ -51,7 +51,8 @@ import {
   handleFollowUser,
   handleUnfollowUser,
   handlePostComment,
-  handleDeletePost
+  handleDeletePost,
+  handleGetProfileByUsername
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -83,6 +84,7 @@ export default function registerRoutes(app) {
   /* ---------- FEED & PROFILE ------------------------------ */
   app.post("/feed",  requireSessionAuth, handleGetFeed);
   app.post("/user",  requireSessionAuth, handleUserProfile);
+
 
   /* ---------- POST CREATION (with optional image) --------- */
   app.post(
@@ -163,6 +165,7 @@ export default function registerRoutes(app) {
   /* ---------- search user/add follow -------------------- */
   // user‐search
   app.get("/users/search", requireSessionAuth, handleSearchUsers);
+  app.get("/user/:username", requireSessionAuth, handleGetProfileByUsername);
 
   // follow action
   app.post("/users/follow", requireSessionAuth, handleFollowUser);

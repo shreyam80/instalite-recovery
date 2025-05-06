@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import FeedPage from './pages/FeedPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import Layout from './pages/Layout';
+import Layout from './pages/Layout'; 
 import socket from './socket';
 import ChatsPage from './pages/ChatsPage';
 import SearchPage from './pages/SearchPage';
@@ -12,6 +12,8 @@ import FriendsPage from "./pages/FriendsPage"; // Make sure this file exists lat
 import ProfilePage  from "./pages/ProfilePage";
 import SettingsPage from './pages/SettingsPage';
 import UserSearchPage from "./pages/UserSearchPage";
+import FriendPage from "./pages/FriendPage";
+
 
 function App() {
   const navigate = useNavigate();
@@ -78,6 +80,7 @@ useEffect(() => {
         <Route path="/search" element={isAuthenticated ? <SearchPage /> : <Navigate to="/login" />} />
         <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />} />
         <Route path="/user" element={isAuthenticated ? <UserPage /> : <Navigate to="/login" />} />
+        <Route path="/user/:username" element={<FriendPage />} />
         <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/users/search" element={isAuthenticated ? <UserSearchPage /> : <Navigate to="/login" />} />

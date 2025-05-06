@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { Link } from "react-router-dom";
+
 
 const FeedPage = () => {
   const [posts, setPosts] = useState([]);
@@ -166,7 +168,9 @@ const FeedPage = () => {
                   borderRadius: "8px"
                 }}
               >
-                <strong>@{post.author}</strong>
+                <strong>
+                  <Link to={`/user/${post.author}`}>@{post.author}</Link>
+                </strong>
                 <p>{post.text}</p>
 
                 <p style={{ fontSize: '0.75rem', color: 'gray' }}>
@@ -213,7 +217,9 @@ const FeedPage = () => {
                   <div style={{ marginTop: "0.5rem" }}>
                     {post.comments.map((c, i) => (
                       <div key={i} style={{ fontSize: "0.85rem", marginTop: "0.2rem" }}>
-                        <strong>@{c.username}</strong>: {c.text}
+                        <strong>
+                          <Link to={`/user/${c.username}`}>@{c.username}</Link>
+                        </strong>
                       </div>
                     ))}
                   </div>
