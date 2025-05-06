@@ -82,7 +82,8 @@ const run = async () => {
                     };
                 } else {
                     // FederatedPosts (Spec: reuse backend logic but use proxy IDs)
-                    const normalizedUsername = `federated_${parsed.username.toLowerCase()}`;
+                    const rawUsername = parsed.username || 'unknown_user';
+const normalizedUsername = `federated_${rawUsername.toLowerCase()}`;
                     const hashtags = extractHashtags(parsed.post_text);
                     postToSave = {
                         ...parsed,
@@ -99,8 +100,13 @@ const run = async () => {
                 await saveKafkaPost(postToSave);
 
                 // inside your Kafka consumer's eachMessage block:
-                getIO().emit('newPost', postToSave);
-                console.log("📢 Emitted newPost to socket clients:", postToSave);
+                const io = getIO();
+            if (io) {
+            io.emit('newPost', postToSave);
+            console.log("📢 Emitted newPost to socket clients:", postToSave);
+            } else {
+            console.warn("⚠️ Socket.io not initialized; skipping emit.");
+            }
 
             } catch (err) {
                 console.error("Error parsing Kafka message:", err);
