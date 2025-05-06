@@ -26,7 +26,11 @@ function initSocketServer(httpServer) {
     const userId = socket.handshake.query.userId;
     socketMappings[userId] = socket.id;
     console.log(`${userId} connected as ${socket.id}`);//debug
+    const onlineIds = Object.keys(socketMappings);
+    socket.emit('onlineUsers', onlineIds);
     broadcastUserStatus(userId, true);
+    
+
 
     socket.onAny((event, ...args) => {
       console.log(`EVENT RECEIVED: ${event}`, args);
@@ -58,15 +62,20 @@ function initSocketServer(httpServer) {
       cb({ success: true });
     });
 
+    socket.on('requestOnlineUsers', () => {
+      socket.emit('onlineUsers', Object.keys(socketMappings));
+    });
+
     socket.on('disconnect', () => {
       console.log(`${userId} disconnected`);
+      // inside socket.on('disconnect', …)
       cleanupOnDisconnect(userId);
     });
   });
 }
 
 function broadcastUserStatus(userId, isOnline) {
-  io.emit('userStatus', { userId, isOnline });
+  io.emit(isOnline ? 'userConnected' : 'userDisconnected', userId);
 }
 
 function emitChatRenamed(chatId, name) {
@@ -99,6 +108,9 @@ function joinChat(socket, chatId) {
     return { success: false, error: err.message };
   }
 }
+
+
+
 
 function leaveChat(socket, chatId) {
   try {

@@ -1,4 +1,3 @@
-// src/components/ChatWindow.jsx
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,7 +5,7 @@ export default function ChatWindow({
   title,
   messages,
   userId,
-  members = [],    // ← now coming from ChatsPage
+  members = [],    // ← now coming from ChatsPage, each member has .online
   onSend
 }) {
   // DEBUG: confirm we received the members prop
@@ -45,19 +44,33 @@ export default function ChatWindow({
       }}>
         <div style={{ display: "flex", marginRight: 12 }}>
           {members.map(u => (
-            <img
-              key={u.userId}
-              src={`http://localhost:3030/users/${u.userId}/image`}
-              alt={`${u.username}’s avatar`}
-              onClick={() => navigate(`/user/${u.username}`)}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                marginRight: 4,
-                cursor: "pointer"
-              }}
-            />
+            <div key={u.userId} style={{ position: 'relative', marginRight: 4 }}>
+              <img
+                src={`http://localhost:3030/users/${u.userId}/image`}
+                alt={`${u.username}’s avatar${u.online ? ' (online)' : ''}`}
+                onClick={() => navigate(`/user/${u.username}`)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  cursor: "pointer"
+                }}
+              />
+              {u.online && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'limegreen',
+                    border: '2px solid white'
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
         <div style={{ fontWeight: "bold" }}>{title}</div>
