@@ -345,19 +345,48 @@ export function handleGetUserImage(req, res) {
 /*  USER SEARCH + ADD FOLLOW                                          */
 /* ------------------------------------------------------------------ */
 
+// export async function handleFollowUser(req, res) {
+//   const { userId, followeeId } = req.body;
+//   if (!userId || !followeeId) {
+//     return res.status(400).json({ error: "Missing userId or followeeId" });
+//   }
+
+//   try {
+//     const db = get_db_connection();
+//     await db.send_sql(
+//       `INSERT INTO friends (follower, following)
+//        VALUES (?, ?)
+//        ON DUPLICATE KEY UPDATE follower = follower`,  // idempotent
+//       [userId, followeeId]
+//     );
+//     return res.json({ success: true });
+//   } catch (err) {
+//     console.error("Follow user failed:", err);
+//     return res.status(500).json({ error: "Database error" });
+//   }
+// }
+
 export async function handleFollowUser(req, res) {
-  const { userId, followeeId } = req.body;
-  if (!userId || !followeeId) {
-    return res.status(400).json({ error: "Missing userId or followeeId" });
+  // 1) Identify who’s following whom
+  const followerId = req.session?.user?.userId;
+  const followeeId = Number(req.params.followeeId);
+
+  if (!followerId) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  if (!followeeId) {
+    return res.status(400).json({ error: "Missing followeeId" });
   }
 
+  // 2) Upsert the follow relationship
   try {
     const db = get_db_connection();
     await db.send_sql(
       `INSERT INTO friends (follower, following)
-       VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE follower = follower`,  // idempotent
-      [userId, followeeId]
+         VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE
+         follower = follower`,        // idempotent
+      [followerId, followeeId]
     );
     return res.json({ success: true });
   } catch (err) {
@@ -370,11 +399,33 @@ export async function handleFollowUser(req, res) {
  * DELETE /users/follow?userId=…&followeeId=…
  * Removes an existing follow relationship.
  */
+// export async function handleUnfollowUser(req, res) {
+//   const userId     = Number(req.query.userId);
+//   const followeeId = Number(req.query.followeeId);
+//   if (!userId || !followeeId) {
+//     return res.status(400).json({ error: "Missing userId or followeeId" });
+//   }
+
+//   try {
+//     const db = get_db_connection();
+//     await db.send_sql(
+//       `DELETE FROM friends
+//          WHERE follower  = ?
+//            AND following = ?`,
+//       [userId, followeeId]
+//     );
+//     return res.json({ success: true });
+//   } catch (err) {
+//     console.error("Unfollow user failed:", err);
+//     return res.status(500).json({ error: "Database error" });
+//   }
+// }
+
 export async function handleUnfollowUser(req, res) {
-  const userId     = Number(req.query.userId);
-  const followeeId = Number(req.query.followeeId);
-  if (!userId || !followeeId) {
-    return res.status(400).json({ error: "Missing userId or followeeId" });
+  const followerId = req.session.user.userId;
+  const followeeId = Number(req.params.followeeId);
+  if (!followeeId) {
+    return res.status(400).json({ error: "Missing followeeId" });
   }
 
   try {
@@ -383,7 +434,7 @@ export async function handleUnfollowUser(req, res) {
       `DELETE FROM friends
          WHERE follower  = ?
            AND following = ?`,
-      [userId, followeeId]
+      [followerId, followeeId]
     );
     return res.json({ success: true });
   } catch (err) {
@@ -392,21 +443,65 @@ export async function handleUnfollowUser(req, res) {
   }
 }
 
-
 /**
  * GET /users/search?q=…
  * Search users by firstName, lastName, or username,
  * excluding the current user, and indicate follow status.
  */
+// export async function handleSearchUsers(req, res) {
+//   const userId = Number(req.query.userId);
+//   const q      = req.query.q?.trim() || "";
+//   if (!userId || !q) {
+//     return res.status(400).json({ error: "Missing userId or query" });
+//   }
+
+//   const db   = get_db_connection();
+//   const like = `%${q}%`;
+//   try {
+//     const [rows] = await db.send_sql(
+//       `SELECT
+//          u.user_id    AS userId,
+//          u.first_name AS firstName,
+//          u.last_name  AS lastName,
+//          u.username   AS username,
+//          EXISTS(
+//            SELECT 1 FROM friends f
+//             WHERE f.follower  = ?
+//               AND f.following = u.user_id
+//          )            AS following
+//        FROM users u
+//        WHERE (u.first_name LIKE ?
+//            OR u.last_name  LIKE ?
+//            OR u.username   LIKE ?)
+//          AND u.user_id <> ?
+//        ORDER BY following DESC, u.first_name, u.last_name
+//        LIMIT 50`,
+//       [userId, like, like, like, userId]
+//     );
+//     return res.json(rows);
+//   } catch (err) {
+//     console.error("User search failed:", err);
+//     return res.status(500).json({ error: "Database error" });
+//   }
+// }
+/**
+ * GET /search/users?q=…
+ * Search users by firstName, lastName, or username,
+ * excluding the current user (from session), and indicate follow status.
+ */
 export async function handleSearchUsers(req, res) {
-  const userId = Number(req.query.userId);
-  const q      = req.query.q?.trim() || "";
-  if (!userId || !q) {
-    return res.status(400).json({ error: "Missing userId or query" });
+  const userId = req.session?.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const q = req.query.q?.trim();
+  if (!q) {
+    return res.status(400).json({ error: "Missing query" });
   }
 
-  const db   = get_db_connection();
+  const db = get_db_connection();
   const like = `%${q}%`;
+
   try {
     const [rows] = await db.send_sql(
       `SELECT

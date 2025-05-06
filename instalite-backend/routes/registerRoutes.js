@@ -164,12 +164,12 @@ export default function registerRoutes(app) {
 
   /* ---------- search user/add follow -------------------- */
   // user‐search
-  app.get("/users/search", requireSessionAuth, handleSearchUsers);
+  app.get("/search/users", requireSessionAuth, handleSearchUsers);
   app.get("/user/:username", requireSessionAuth, handleGetProfileByUsername);
 
   // follow action
-  app.post("/users/follow", requireSessionAuth, handleFollowUser);
-  app.delete("/users/follow", requireSessionAuth, handleUnfollowUser);
+  app.post  ("/users/:followeeId/follow",   requireSessionAuth, handleFollowUser);
+  app.post  ("/users/:followeeId/unfollow", requireSessionAuth, handleUnfollowUser);
   app.delete("/post/:postId", requireSessionAuth, handleDeletePost);
   app.get("/mutuals", requireSessionAuth, handleGetMutuals);
 
