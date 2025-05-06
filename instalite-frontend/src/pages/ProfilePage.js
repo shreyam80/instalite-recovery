@@ -1,35 +1,39 @@
 // src/pages/ProfilePage.js
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfilePage() {
-  const [file, setFile] = useState(null);
+  const navigate = useNavigate();
+  const userId   = localStorage.getItem("userId");
   const [uploading, setUploading] = useState(false);
-  const [matches, setMatches] = useState([]);
+  const [matchesData, setMatchesData] = useState(null);
   const [error, setError] = useState("");
 
+  // 1) Upload & fetch your image + actorMatches
   const handleFileChange = async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-
-    setFile(f);
+    const file = e.target.files[0];
+    if (!file) return;
     setError("");
     setUploading(true);
-    setMatches([]);
-
-    // build the multipart form
-    const form = new FormData();
-    form.append("userId", localStorage.getItem("userId"));
-    form.append("profileImage", f);
 
     try {
-      const res = await fetch("http://localhost:3000/uploadProfileImage", {
+      const form = new FormData();
+      form.append("userId", userId);
+      form.append("profileImage", file);
+
+      const res  = await fetch("http://localhost:3000/uploadProfileImage", {
         method: "POST",
         body: form,
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Upload failed");
 
-      setMatches(json.actorMatches || []);
+      // stash both your upload URL and the 5 actor matches
+      setMatchesData({
+        imageUrl:     json.imageUrl,
+        actorMatches: json.actorMatches,
+      });
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -38,69 +42,111 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSelect = async (actorId) => {
-    try {
-      const res = await fetch("http://localhost:3000/linkActorToUser", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: localStorage.getItem("userId"),
-          actorId,
-        }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || "Link failed");
-      alert("Actor linked!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to link actor: " + err.message);
+  // 2) User clicked one of the 6 options
+  const handleSelect = async (opt) => {
+    const { id, imageUrl } = opt;
+
+    // Save this globally so sidebar + UserPage will pick it up
+    localStorage.setItem("profileImageUrl", imageUrl);
+
+    // If it's not your own upload, let backend know which actor you chose
+    if (id !== "__uploaded__") {
+      try {
+        const res = await fetch("http://localhost:3000/linkActorToUser", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ userId, actorId: id }),
+        });
+        if (!res.ok) {
+          const js = await res.json();
+          throw new Error(js.error || "Link failed");
+        }
+      } catch (err) {
+        console.error("Failed to link actor:", err);
+        // but continue regardless
+      }
     }
+
+    // Finally, drop into the feed
+    navigate("/feed");
   };
+
+  // — RENDER —
+
+  // A) Before upload: pick a file
+  if (!matchesData) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>Pick a Profile Photo</h2>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          disabled={uploading}
+        />
+        {uploading && <p>Uploading and matching…</p>}
+        {error     && <p style={{ color: "red" }}>{error}</p>}
+      </div>
+    );
+  }
+
+  // B) After upload: show the 6 clickable thumbnails
+  const { imageUrl, actorMatches } = matchesData;
+  const options = [
+    { id: "__uploaded__", name: "My Upload", imageUrl },
+    ...actorMatches.map((m) => ({
+      id: m.nconst,
+      name: m.name,
+      imageUrl: m.imageUrl,
+    })),
+  ];
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Pick a Profile Photo</h2>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        disabled={uploading}
-      />
-      {uploading && <p>Uploading and matching…</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <h2>Select Your Profile Photo</h2>
 
-      {matches.length > 0 && (
-        <div>
-          <h3>Top {matches.length} Matches</h3>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {matches.map((m) => (
-              <li
-                key={m.nconst}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
-              >
-                <img
-                  src={m.imageUrl}
-                  alt={m.name}
-                  width={50}
-                  height={50}
-                  style={{ marginRight: 12, borderRadius: "50%" }}
-                />
-                <div style={{ flex: 1 }}>
-                  <strong>{m.name}</strong>
-                  <br />
-                  <small>dist: {m.distance.toFixed(2)}</small>
-                </div>
-                <button onClick={() => handleSelect(m.nconst)}>
-                  Link this actor
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div
+        style={{
+          display:            "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+          gap:                16,
+          marginTop:          16,
+          marginBottom:       24,
+        }}
+      >
+        {options.map((opt) => (
+          <div
+            key={opt.id}
+            onClick={() => handleSelect(opt)}
+            style={{
+              cursor:          "pointer",
+              border:          "1px solid #ccc",
+              borderRadius:    8,
+              padding:         8,
+              textAlign:       "center",
+              userSelect:      "none",
+              transition:      "border 0.2s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.border = "2px solid #007bff"}
+            onMouseLeave={(e) => e.currentTarget.style.border = "1px solid #ccc"}
+          >
+            <img
+              src={opt.imageUrl}
+              alt={opt.name}
+              style={{
+                width:        100,
+                height:       100,
+                objectFit:    "cover",
+                borderRadius: "50%",
+                marginBottom: 8,
+              }}
+            />
+            <div style={{ fontWeight: "bold" }}>{opt.name}</div>
+            <button style={{ marginTop: 8 }}>Use this photo</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

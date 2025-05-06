@@ -79,6 +79,7 @@ export default function RegisterPage() {
       const res = await fetch("http://localhost:3030/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body)
       });
       const data = await res.json();

@@ -30,7 +30,15 @@ export default function Layout() {
   };
 
   // direct‐redirect to profile image
-  const profileImageUrl = `http://localhost:3030/users/${userId}/image`;
+  const stored = localStorage.getItem("profileImageUrl");
+  const profileImageUrl = stored ? stored : `http://localhost:3030/users/${userId}/image`; 
+
+  <img
+    src={profileImageUrl}
+    alt="Your profile"
+    onClick={() => navigate("/user")}
+    style={{ /* … */ }}
+  />
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
