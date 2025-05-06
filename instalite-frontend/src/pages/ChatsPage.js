@@ -32,6 +32,10 @@ export default function ChatsPage() {
   const [inviteOptions, setInviteOptions] = useState([]);
   const [selectedInvitee, setSelectedInvitee] = useState(null);
 
+  // track who’s online (a Set of userIds)
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+
   // add this:
   const [membersData, setMembersData] = useState([]);
 
@@ -161,12 +165,38 @@ export default function ChatsPage() {
     socket.on("userLeftRoom", onUserLeft);
     socket.on("chatRenamed", onRenamed);
 
+
+    const onOnlineUsers = ids =>
+           setOnlineUsers(new Set(ids.map(id => Number(id))));
+         const onUserConnected = id =>
+           setOnlineUsers(prev => {
+             const next = new Set(prev);
+             next.add(Number(id));
+             return next;
+           });
+    const onUserDisconnected = id =>
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        next.delete(Number(id));
+        return next;
+      });
+  
+   socket.on("onlineUsers", onOnlineUsers);
+   socket.on("userConnected", onUserConnected);
+   socket.on("userDisconnected", onUserDisconnected);
+
+   socket.emit("requestOnlineUsers")
+
     return () => {
       socket.off("chatMessage", onMsg);
       socket.off("chatInvite", onInvite);
       socket.off("userJoinedRoom", onUserJoined);
       socket.off("userLeftRoom", onUserLeft);
       socket.off("chatRenamed", onRenamed);
+      // ——— off() for online‑status ———
+      socket.off("onlineUsers", onOnlineUsers);
+      socket.off("userConnected", onUserConnected);
+      socket.off("userDisconnected", onUserDisconnected);
     };
   }, [active, mutuals, loadChats, loadInvites]);
 
@@ -322,7 +352,10 @@ export default function ChatsPage() {
     });
   }, [active, chats]);
   
-
+  const membersWithStatus = membersData.map(u => ({
+    ...u,
+    online: onlineUsers.has(u.userId),
+  }));
 
 
   return (
@@ -473,7 +506,7 @@ export default function ChatsPage() {
           <div style={{ flex: 1, minHeight: 0 }}>
             <ChatWindow
               title={chats.find(c => c.chatId === active)?.name || "Chat"}
-              members={membersData}   
+              members={membersWithStatus}
               messages={history[active] || []}
               userId={uid}
               onSend={async msg => {
