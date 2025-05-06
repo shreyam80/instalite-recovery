@@ -65,7 +65,7 @@ export async function saveKafkaPost(post) {
     );
 
     if (existingPost) {
-      console.log("🟡 Duplicate post skipped:", post.source_site, post.post_text);
+      console.log("Duplicate post skipped:", post.source_site, post.post_text);
       return;
     }
 
@@ -93,67 +93,3 @@ export async function saveKafkaPost(post) {
     console.error('Error inserting Kafka post:', err);
   }
 }
-
-//save kafka comment
-// export async function saveKafkaComment(comment) {
-//   const db = get_db_connection();
-//   await db.connect();
-
-//   try {
-//     // 1. Ensure the user exists
-//     const [existingUser] = await db.send_sql(
-//       "SELECT user_id FROM users WHERE username = ?",
-//       [comment.username]
-//     );
-
-//     let userId = existingUser.length ? existingUser[0].user_id : null;
-
-//     if (!userId) {
-//       await db.insert_items(
-//         "INSERT INTO users (username, email, first_name, last_name) VALUES (?, ?, ?, ?)",
-//         [comment.username, `${comment.username}@external.com`, comment.username, 'Kafka']
-//       );
-
-//       const [userRow] = await db.send_sql(
-//         "SELECT user_id FROM users WHERE username = ?",
-//         [comment.username]
-//       );
-//       userId = userRow[0].user_id;
-//     }
-
-//     // 2. Get post_id from external_site_id
-//     const [[postRow]] = await db.send_sql(
-//       "SELECT post_id FROM posts WHERE external_site_id = ?",
-//       [comment.post_uuid_within_site]
-//     );
-
-//     const postId = postRow?.post_id;
-//     if (!postId) {
-//       console.error("Could not find post for comment with UUID:", comment.post_uuid_within_site);
-//       return;
-//     }
-
-//     // Check if comment already exists using comment_uuid (if included)
-//     if (comment.comment_uuid) {
-//       const [[existingComment]] = await db.send_sql(
-//       'SELECT comment_id FROM comments WHERE text_content = ? AND post_id IN (SELECT post_id FROM posts WHERE external_site_id = ?)',
-//     [comment.text, comment.post_uuid_within_site]
-//   );
-//     if (existingComment) {
-//       console.log("🟡 Duplicate comment skipped:", comment.comment_uuid);
-//       return;
-//     }
-//   }
-
-//     // 3. Insert comment
-//     await db.insert_items(
-//       `INSERT INTO comments (post_id, user_id, text_content, parent_comment_id)
-//        VALUES (?, ?, ?, ?)`,
-//       [postId, userId, comment.text, null]
-//     );
-
-//     console.log("✔ Inserted Kafka comment from", comment.username);
-//   } catch (err) {
-//     console.error("Error inserting Kafka comment:", err);
-//   }
-// }

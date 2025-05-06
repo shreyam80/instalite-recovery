@@ -13,29 +13,19 @@ export async function addComment(postId, userId, text, parentCommentId = null) {
     );
     const commentID = result.insertId;
 
-// 2) Fetch the commenting user’s username
-const [[userRow]] = await db.send_sql(
-  'SELECT username FROM users WHERE user_id = ?',
-  [userId]
-);
-const username = userRow.username;
+    // 2) Fetch the commenting user’s username
+    const [[userRow]] = await db.send_sql(
+      'SELECT username FROM users WHERE user_id = ?',
+      [userId]
+    );
+    const username = userRow.username;
 
-// 3) Fetch the post’s external UUID (so your consumer can look up the right post)
-// const [[postRow]] = await db.send_sql(
-//   'SELECT external_site_id FROM posts WHERE post_id = ?',
-//   [postId]
-// );
-// const post_uuid_within_site = postRow.external_site_id;
-
-// // 4) Publish the comment event to Kafka
-// await produceCommentEvent({ username, post_uuid_within_site, text });
-
-// 5) Return success
-return { success: true, commentId };
-} catch (err) {
-console.error("addComment error:", err);
-return { error: "Failed to add comment" };
-}
+    // 3) Return success
+    return { success: true, commentId };
+    } catch (err) {
+    console.error("addComment error:", err);
+    return { error: "Failed to add comment" };
+    }
 }
 
 export async function likeComment(commentId, userId) {
@@ -115,7 +105,7 @@ export async function getCommentsForPosts(postIds) {
   const db = get_db_connection();
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
-    return {}; // 🔒 early return to avoid SQL error
+    return {};
   }
 
   const placeholders = postIds.map(() => '?').join(',');
