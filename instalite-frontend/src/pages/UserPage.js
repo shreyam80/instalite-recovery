@@ -50,7 +50,7 @@ export default function UserPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ postId, content })
+        body: JSON.stringify({ postId, content }),
       });
       if (res.ok) {
         const updatedProfile = { ...profile };
@@ -67,6 +67,26 @@ export default function UserPage() {
       }
     } catch (err) {
       console.error("Failed to post comment:", err);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:3030/post/${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Delete failed");
+
+      const updatedPosts = profile.posts.filter((p) => p.postId !== postId);
+      setProfile({ ...profile, posts: updatedPosts });
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete post.");
     }
   };
 
@@ -94,7 +114,7 @@ export default function UserPage() {
                 border: "1px solid #ccc",
                 padding: "1rem",
                 marginBottom: "1rem",
-                borderRadius: "8px"
+                borderRadius: "8px",
               }}
             >
               <p>{post.text}</p>
@@ -150,10 +170,29 @@ export default function UserPage() {
                 type="text"
                 placeholder="Write a comment..."
                 value={commentInputs[post.postId] || ""}
-                onChange={(e) => handleCommentChange(post.postId, e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitComment(post.postId)}
+                onChange={(e) =>
+                  handleCommentChange(post.postId, e.target.value)
+                }
+                onKeyDown={(e) =>
+                  e.key === "Enter" && submitComment(post.postId)
+                }
                 style={{ marginTop: "0.5rem", width: "100%" }}
               />
+
+              <button
+                onClick={() => handleDeletePost(post.postId)}
+                style={{
+                  marginTop: "0.5rem",
+                  backgroundColor: "#ffdddd",
+                  border: "1px solid #ffaaaa",
+                  color: "#aa0000",
+                  padding: "0.3rem 0.6rem",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete Post
+              </button>
             </div>
           );
         })

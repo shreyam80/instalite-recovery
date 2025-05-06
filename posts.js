@@ -36,22 +36,21 @@ export async function createPost(userId, text, imageUrl = null, hashtags = []) {
   }
 }
 
-export async function deletePost(postId, userId) {
+export async function deletePost(postId, authorId) {
   try {
-    const [results] = await db.send_sql(
-      "DELETE FROM posts WHERE post_id = ? AND author = ?",
-      [postId, userId]
+    // First, delete associated comments
+    await db.send_sql(`DELETE FROM comments WHERE post_id = ?`, [postId]);
+
+    // Then, delete the post
+    const [result] = await db.send_sql(
+      `DELETE FROM posts WHERE post_id = ? AND author = ?`,
+      [postId, authorId]
     );
 
-    if (results.affectedRows === 0) {
-      return { error: "Post not found or unauthorized" };
-    }
-    await db.send_sql("DELETE FROM post_likes WHERE post_id = ?", [postId]);
-
-    return { success: true };
+    return result.affectedRows > 0;
   } catch (err) {
     console.error("deletePost error:", err);
-    return { error: "Failed to delete post" };
+    return false;
   }
 }
 

@@ -50,7 +50,8 @@ import {
   handleSearchUsers,
   handleFollowUser,
   handleUnfollowUser,
-  handlePostComment
+  handlePostComment,
+  handleDeletePost
 } from "./routes.js";
 
 /* optional DB helper for raw queries in post upload */
@@ -146,8 +147,8 @@ export default function registerRoutes(app) {
   app.get("/chat/sessions", handleGetUserChats);
 
   /* ---------- MUTUALS ------------------------------------- */
-  app.get("/mutuals", handleGetMutuals);
-  app.get("/users/:userId", handleGetUserById);
+  app.get("/mutuals", requireSessionAuth, handleGetMutuals);
+  app.get("/users/:userId", requireSessionAuth, handleGetUserById);
   
   /* ---------- SESSION DEBUG (optional) -------------------- */
   app.get("/session", (req, res) =>
@@ -166,4 +167,5 @@ export default function registerRoutes(app) {
   // follow action
   app.post("/users/follow", requireSessionAuth, handleFollowUser);
   app.delete("/users/follow", requireSessionAuth, handleUnfollowUser);
+  app.delete("/post/:postId", requireSessionAuth, handleDeletePost);
 }
