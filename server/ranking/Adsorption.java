@@ -126,7 +126,7 @@ public class Adsorption {
         System.out.println("DEBUG: Total post nodes in graph: " + postNodeCount);
 
         // Step 2: Run up to 15 iterations or until convergence
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 7; i++) {
             System.out.println("DEBUG: Starting iteration " + (i+1));
             
             // Propagate labels along edges
