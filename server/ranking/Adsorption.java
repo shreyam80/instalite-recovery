@@ -126,7 +126,7 @@ public class Adsorption {
         System.out.println("DEBUG: Total post nodes in graph: " + postNodeCount);
 
         // Step 2: Run up to 15 iterations or until convergence
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 20; i++) {
             System.out.println("DEBUG: Starting iteration " + (i+1));
             
             // Propagate labels along edges
@@ -255,9 +255,9 @@ labels = normalizeLabels(combinedWithRestart);
             double sum = labelVec.values().stream().mapToDouble(Double::doubleValue).sum();
             
             // If sum is zero or very small, return as is
-            if (sum < 0.000001) {
-                return tuple;
-            }
+            // if (sum < 0.000001) {
+            //     return tuple;
+            // }
             
             // Normalize
             Map<Integer, Double> normalizedVec = new HashMap<>();
