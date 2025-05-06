@@ -1,25 +1,25 @@
 // src/pages/Layout.js
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 export default function Layout() {
   const navigate = useNavigate();
-  const userId = Number(localStorage.getItem("userId"));
+  const location = useLocation();
+  const userId   = Number(localStorage.getItem("userId") || 0);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await fetch("http://localhost:3030/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    localStorage.clear();
-    window.location.href = "/login";
-  };
+  // Paths on which we do NOT render the sidebar
+  const HIDE_SIDEBAR = ["/login", "/register", "/profile"];
 
-  // sidebar dimensions
+  // Early return if we're on login/register/or profile-pick page
+  if (HIDE_SIDEBAR.includes(location.pathname)) {
+    return <Outlet />;
+  }
+
+  // Otherwise render your sidebar + outlet
   const SIDEBAR_WIDTH = 100;
-  const ICON_SIZE = 32;
-  const PROFILE_SIZE = 40;
+  const ICON_SIZE     = 32;
+  const PROFILE_SIZE  = 40;
 
   const iconStyle = {
     width: ICON_SIZE,
@@ -29,16 +29,20 @@ export default function Layout() {
     marginBottom: 24,
   };
 
-  // direct‐redirect to profile image
-  const stored = localStorage.getItem("profileImageUrl");
-  const profileImageUrl = stored ? stored : `http://localhost:3030/users/${userId}/image`; 
+  const handleLogout = async () => {
+    await fetch("http://localhost:3000/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    localStorage.clear();
+    window.location.href = "/login";
+  };
 
-  <img
-    src={profileImageUrl}
-    alt="Your profile"
-    onClick={() => navigate("/user")}
-    style={{ /* … */ }}
-  />
+  // profile image: prefer localStorage (what you picked), otherwise backend
+  const storedImage = localStorage.getItem("profileImageUrl");
+  const profileImageUrl = storedImage
+    ? storedImage
+    : `http://localhost:3000/users/${userId}/image`;
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
@@ -81,12 +85,12 @@ export default function Layout() {
         {/* Create Post */}
         <img
           src="/icons/create_post.svg"
-          alt="Create Post"
+          alt="New Post"
           style={iconStyle}
-          onClick={() => navigate("/feed?create=true")}
+          onClick={() => navigate("/post/create")}
         />
 
-        {/* Friends */}
+        {/* Find Users */}
         <img
           src="/icons/search_users.svg"
           alt="Search Users"
@@ -102,14 +106,12 @@ export default function Layout() {
           onClick={() => navigate("/chats")}
         />
 
-        {/* Spacer */}
         <div style={{ flexGrow: 1 }} />
 
         {/* Profile */}
         <img
           src={profileImageUrl}
           alt="Your profile"
-          onClick={() => navigate("/user")}
           style={{
             width: PROFILE_SIZE,
             height: PROFILE_SIZE,
@@ -118,9 +120,10 @@ export default function Layout() {
             objectFit: "cover",
             marginBottom: 16,
           }}
+          onClick={() => navigate("/user")}
         />
 
-        {/* Hamburger + dropdown */}
+        {/* Menu */}
         <div style={{ position: "relative", marginBottom: 16 }}>
           <img
             src="/icons/menu.svg"
@@ -144,7 +147,6 @@ export default function Layout() {
                 zIndex: 100,
               }}
             >
-              {/* Settings */}
               <div
                 onClick={() => {
                   setMenuOpen(false);
@@ -172,10 +174,8 @@ export default function Layout() {
                 Settings
               </div>
 
-              {/* Divider */}
               <div style={{ height: 1, background: "#eee" }} />
 
-              {/* Log out */}
               <div
                 onClick={handleLogout}
                 style={{

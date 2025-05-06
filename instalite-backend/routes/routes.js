@@ -242,17 +242,17 @@ export async function handleSearch(req, res) {
  * Returns only those users who both follow you and are followed by you.
  */
 export async function handleGetMutuals(req, res) {
-  const userId = Number(req.query.userId);
+  const userId = Number(req.query.userId); // <- from query, not session
   if (!userId) return res.status(400).json({ error: "Missing userId" });
+
   try {
-    const mutuals = await getMutualsForUser(userId);
-    return res.json(mutuals);
+    const mutuals = await getMutualsForUser(userId, req.db);
+    res.json(mutuals);
   } catch (err) {
-    console.error("Failed to load mutuals:", err);
-    return res.status(500).json({ error: "Database error fetching mutuals" });
+    console.error("Failed to get mutuals:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
-
 
 /* ------------------------------------------------------------------ */
 /*  FEED                                                                */

@@ -171,6 +171,6 @@ export default function registerRoutes(app) {
   app.post  ("/users/:followeeId/follow",   requireSessionAuth, handleFollowUser);
   app.post  ("/users/:followeeId/unfollow", requireSessionAuth, handleUnfollowUser);
   app.delete("/post/:postId", requireSessionAuth, handleDeletePost);
-  app.get("/mutuals", requireSessionAuth, handleGetMutuals);
+  app.get("/mutuals", handleGetMutuals);
 
 }

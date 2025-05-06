@@ -84,18 +84,32 @@ export default function ChatsPage() {
   }, []);
 
   // Load mutuals (people you can chat with)
-  const loadMutuals = useCallback(() => {
-    fetch(`http://localhost:3030/mutuals?userId=${uid}`)
-      .then(r => r.json())
-      .then(setMutuals)
-      .catch(console.error);
-  }, []);
+// Load mutuals (people you can chat with)
+// Load mutuals (people you can chat with)
+const loadMutuals = useCallback(() => {
+  const userId = Number(localStorage.getItem("userId"));
 
-  useEffect(() => {
-    loadMutuals();
-    loadChats();
-    loadInvites();
-  }, [loadChats, loadInvites, loadMutuals]);
+  fetch(`http://localhost:3030/mutuals?userId=${userId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (Array.isArray(data)) {
+        setMutuals(data);
+      } else {
+        console.error("mutuals is not array:", data);
+        setMutuals([]);
+      }
+    })
+    .catch(err => {
+      console.error("error fetching mutuals:", err);
+      setMutuals([]);
+    });
+}, []); // this closing bracket was missing
+
+useEffect(() => {
+  loadMutuals();
+  loadChats();
+  loadInvites();
+}, [loadChats, loadInvites, loadMutuals]);
 
   // auto-join socket rooms
   useEffect(() => {
