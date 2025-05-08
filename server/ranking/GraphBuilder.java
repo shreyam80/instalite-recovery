@@ -86,7 +86,27 @@ public class GraphBuilder {
             }
         }
 
+        //ADDING EDGES FOR FEDERATED POSTS
+        Set<Integer> federatedPostIds = DBUtils.getFederatedPostIds(); // New method in DBUtils
+        Set<Integer> allUserIds = DBUtils.getAllUserIds();             // New method in DBUtils
+
+        for (int postId : federatedPostIds) {
+            String postNode = "p" + postId;
+            for (int userId : allUserIds) {
+                String userNode = "u" + userId;
+                edges.add(new Tuple2<>(postNode, new Tuple2<>(userNode, 0.01)));  // weak recommendation
+                edges.add(new Tuple2<>(userNode, new Tuple2<>(postNode, 0.01)));
+            }
+        }
+        // FINISHED ADDING EDGES FOR FEDERATED POSTS
         System.out.println("DEBUG: Total edges created for graph: " + edges.size());
+        for (Tuple2<String, Tuple2<String, Double>> edge : edges) {
+    String src = edge._1();
+    String dst = edge._2()._1();
+    if (src.startsWith("u") && dst.startsWith("p")) {
+        System.out.println("DEBUG: User-to-post edge: " + edge);
+    }
+}
         if (edges.isEmpty()) {
             System.out.println("WARNING: No edges were created. Check if post_likes and friends tables have data.");
         }

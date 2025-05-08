@@ -118,6 +118,8 @@ public class DBUtils {
         long postNodeCount = postNodes.count();
         System.out.println("DEBUG: Found " + postNodeCount + " post nodes to process for ranked feed");
 
+        postNodes.take(3).forEach(t -> System.out.println("DEBUG: PostNode=" + t._1 + " - Scores=" + t._2));
+
         if (postNodeCount == 0) {
             System.out.println("WARNING: No post nodes found in label vectors! Check graph construction.");
             return;
@@ -139,11 +141,18 @@ public class DBUtils {
                         // Extract post ID from node ID (strip the 'p' prefix)
                         int postId = Integer.parseInt(nodeId.substring(1));
                         
+                        if (scores == null) {
+                        System.out.println("DEBUG: Post " + postId + " has NULL scores map");
+                        continue;
+                    }
+
                         // Skip if this post has no user scores
                         if (scores.isEmpty()) {
                             System.out.println("DEBUG: Post " + postId + " has no user scores, skipping");
                             continue;
                         }
+
+                        System.out.println("DEBUG: Post " + postId + " has scores from users: " + scores.keySet());
 
                         for (Map.Entry<Integer, Double> entry : scores.entrySet()) {
                             int userId = entry.getKey();
@@ -151,6 +160,11 @@ public class DBUtils {
                             
                             // Skip very small scores to reduce noise
                             //if (score < 0.0001) continue;
+
+                            
+                            if (score < 0.001) {
+                                System.out.println("DEBUG: Very low score (" + score + ") for user " + userId + " on post " + postId);
+                            }
 
                             stmt.setInt(1, userId);
                             stmt.setInt(2, postId);
@@ -258,4 +272,33 @@ public class DBUtils {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(jsonArray, new TypeReference<List<String>>() {});
     }
+
+    public static Set<Integer> getFederatedPostIds() {
+    Set<Integer> ids = new HashSet<>();
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement("SELECT post_id FROM posts WHERE is_external = 1");
+         ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+            ids.add(rs.getInt("post_id"));
+        }
+    } catch (Exception e) {
+        System.err.println("DBUtils.getFederatedPostIds error: " + e.getMessage());
+    }
+    return ids;
+}
+
+public static Set<Integer> getAllUserIds() {
+    Set<Integer> ids = new HashSet<>();
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement("SELECT user_id FROM users");
+         ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+            ids.add(rs.getInt("user_id"));
+        }
+    } catch (Exception e) {
+        System.err.println("DBUtils.getAllUserIds error: " + e.getMessage());
+    }
+    return ids;
+}
+
 }

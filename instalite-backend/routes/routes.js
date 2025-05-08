@@ -706,3 +706,49 @@ export async function handleGetProfileByUsername(req, res) {
     return res.status(500).json({ error: "Failed to fetch user profile" });
   }
 }
+
+export async function handleLikePost(req, res) {
+  const userId = req.session?.user?.userId;
+  const postId = Number(req.params.postId);
+
+  if (!userId || !postId) {
+    return res.status(400).json({ error: "Missing user or post ID" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `INSERT INTO post_likes (user_id, post_id)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE user_id = user_id`, // idempotent insert
+      [userId, postId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Failed to like post:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+export async function handleUnlikePost(req, res) {
+  const userId = req.session?.user?.userId;
+  const postId = Number(req.params.postId);
+
+  if (!userId || !postId) {
+    return res.status(400).json({ error: "Missing user or post ID" });
+  }
+
+  try {
+    const db = get_db_connection();
+    await db.send_sql(
+      `DELETE FROM post_likes WHERE user_id = ? AND post_id = ?`,
+      [userId, postId]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Unlike post failed:", err);
+    return res.status(500).json({ error: "Database error" });
+  }
+}
+
+

@@ -111,7 +111,11 @@ public class FeedRankingJob {
             if (edgeCount > 0) {
                 // 3. Run adsorption algorithm
                 JavaPairRDD<String, Map<Integer, Double>> labelVectors = Adsorption.run(sc, graphEdges);
-                
+                System.out.println("DEBUG: Total label vector entries: " + labelVectors.count());
+
+                labelVectors.take(10).forEach(entry -> {
+                    System.out.println("DEBUG: Label vector for " + entry._1 + ": " + entry._2);
+                });
                 // Debug: Show node counts by type
                 long totalNodes = labelVectors.count();
                 long userNodes = labelVectors.filter(node -> node._1.startsWith("u")).count();
@@ -142,7 +146,7 @@ public class FeedRankingJob {
                 System.out.println("Feed ranking job completed successfully!");
             } else {
                 System.out.println("WARNING: No edges found in graph. Check if post_likes and friends tables have data.");
-            }
+            } 
         } catch (Exception e) {
             System.err.println("Error in feed ranking job: " + e.getMessage());
             e.printStackTrace();

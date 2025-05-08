@@ -15,7 +15,7 @@ const FeedPage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ Proper placement
+  const location = useLocation(); 
 
   // Trigger modal if coming from ?create=true
   useEffect(() => {
@@ -61,6 +61,53 @@ const FeedPage = () => {
 
     checkSessionAndFetchFeed();
   }, [navigate]);
+
+  // const handleLikePost = async (postId) => {
+  //   try {
+  //     const res = await fetch(`http://localhost:3030/posts/${postId}/like`, {
+  //       method: "POST",
+  //       credentials: "include"
+  //     });
+  
+  //     if (!res.ok) {
+  //       const data = await res.json();
+  //       throw new Error(data.error || "Failed to like post");
+  //     }
+  
+  //     // Refresh feed to reflect updated like count and status
+  //     const refreshedFeed = await fetch("http://localhost:3030/feed", {
+  //       method: "POST",
+  //       credentials: "include"
+  //     });
+  //     const feedData = await refreshedFeed.json();
+  //     setPosts(feedData);
+  //   } catch (err) {
+  //     console.error("Like error:", err);
+  //     alert("Failed to like post");
+  //   }
+  // };
+
+  const handleToggleLike = async (postId, isLiked) => {
+    const method = isLiked ? "DELETE" : "POST";
+    try {
+      await fetch(`http://localhost:3030/post/${postId}/like`, {
+        method,
+        credentials: "include",
+      });
+  
+      // Re-fetch the updated feed
+      const refreshedFeed = await fetch("http://localhost:3030/feed", {
+        method: "POST",
+        credentials: "include",
+      });
+      const feedData = await refreshedFeed.json();
+      setPosts(feedData);
+    } catch (err) {
+      console.error("Like toggle failed:", err);
+    }
+  };
+  
+  
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
@@ -210,7 +257,21 @@ const FeedPage = () => {
                 <small>{new Date(post.timestamp).toLocaleString()}</small>
 
                 <div style={{ marginTop: '0.3rem', fontSize: '0.85rem' }}>
-                  ❤️ {post.likeCount || 0} likes
+                <button
+                  onClick={() => handleToggleLike(post.postId, post.liked)}
+                  style={{
+                    marginTop: "0.5rem",
+                    backgroundColor: "white",
+                    border: "1px solid lightgray",
+                    color: post.liked ? "red" : "gray",
+                    padding: "0.3rem 0.6rem",
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {post.liked ? "❤️ Unlike" : "🤍 Like"}
+                </button>
+                  {post.likeCount || 0} likes
                 </div>
 
                 {Array.isArray(post.comments) && post.comments.length > 0 ? (

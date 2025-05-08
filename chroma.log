@@ -55608,3 +55608,8 @@
 [33mWARNING[0m:  [05-05-2025 21:33:30] Add of existing embedding ID: undefined
 [32mINFO[0m:     [05-05-2025 21:33:30] 127.0.0.1:40060 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7216ef10-3c0c-4d7c-94d7-50255681b2fa/add HTTP/1.1" 201
 [32mINFO[0m:     [05-05-2025 21:33:30] 127.0.0.1:40050 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/7216ef10-3c0c-4d7c-94d7-50255681b2fa/query?limit=7 HTTP/1.1" 200
+[33mWARNING[0m:  [08-05-2025 05:32:51] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048576. chroma_server_nofile will not be set.
+[32mINFO[0m:     [08-05-2025 05:32:51] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [08-05-2025 05:32:51] Starting component System
+[36mDEBUG[0m:    [08-05-2025 05:32:51] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [08-05-2025 05:32:51] Starting component SqliteDB

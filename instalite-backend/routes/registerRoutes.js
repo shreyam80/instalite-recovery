@@ -12,6 +12,8 @@ import {
   handleRegister,
   handleSearch,
   handleLogout,
+  handleLikePost,
+  handleUnlikePost,
 
   /* feed / profile / posts */
   handleGetFeed,
@@ -172,5 +174,8 @@ export default function registerRoutes(app) {
   app.post  ("/users/:followeeId/unfollow", requireSessionAuth, handleUnfollowUser);
   app.delete("/post/:postId", requireSessionAuth, handleDeletePost);
   app.get("/mutuals", handleGetMutuals);
+  app.post("/post/:postId/like", requireSessionAuth, handleLikePost);
+  app.delete("/post/:postId/like", requireSessionAuth, handleUnlikePost);
+
 
 }

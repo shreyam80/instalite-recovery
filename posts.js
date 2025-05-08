@@ -182,15 +182,24 @@ export async function getPostsForUser(userId) {
 
     // Step 2: Fetch full post details for these ranked post IDs
     const [posts] = await db.send_sql(
-      `SELECT p.post_id, p.text_content, p.timestamp, p.image_url, p.hashtag_text,
-              u.username AS author_username, u.profile_image_url,
-              COUNT(pl.user_id) AS likeCount
+      `SELECT p.post_id,
+              p.text_content,
+              p.timestamp,
+              p.image_url,
+              p.hashtag_text,
+              u.username AS author_username,
+              u.profile_image_url,
+              COUNT(pl.user_id) AS likeCount,
+              EXISTS (
+                SELECT 1 FROM post_likes pl2
+                WHERE pl2.post_id = p.post_id AND pl2.user_id = ?
+              ) AS liked
          FROM posts p
          JOIN users u ON p.author = u.user_id
          LEFT JOIN post_likes pl ON p.post_id = pl.post_id
         WHERE p.post_id IN (?)
         GROUP BY p.post_id`,
-      [postIds]
+      [userId, postIds]  
     );
 
     // Step 3: Preserve original rank order
@@ -209,6 +218,7 @@ export async function getPostsForUser(userId) {
       author: post.author_username,
       profileImage: post.profile_image_url,
       likeCount: post.likeCount || 0,
+      liked: !!post.liked, // Ensure it's boolean
       hashtags: safeParseJSON(post.hashtag_text),
       comments: commentsByPost[post.post_id] || []
     }));
