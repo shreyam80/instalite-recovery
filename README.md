@@ -2,8 +2,6 @@
 
 InstaLite is a full-stack, Instagram-inspired social media platform built to simulate distributed systems at scale. Developed by a team of four, InstaLite supports real-time content ingestion via Kafka, personalized feed ranking via Apache Spark, and intelligent search through vector embeddings and LangChain. The system integrates cloud infrastructure, streaming data, and large language models to offer a dynamic and scalable user experience.
 
-![InstaLite Banner](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2022.svg/1200px-Instagram_logo_2022.svg.png)
-
 ## Features
 
 - Posts, comments, hashtags, and image uploads
@@ -54,5 +52,6 @@ As a core contributor to the project, I focused on the **streaming infrastructur
 - Database schema design affects both system performance and ML-based ranking outcomes.
 - Building features like likes required cross-layer updates: UI, DB, and algorithm.
 
-## Project Structure
+## Acknowledgements
+This project was developed as the final project for **NETS 2120: Scalable and Cloud Computing** at the University of Pennsylvania.
 
