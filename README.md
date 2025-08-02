@@ -45,12 +45,6 @@ As a core contributor to the project, I focused on the **streaming infrastructur
 - Added graceful fallback to chronological post list when no ranked feed was available.
 - Helped debug UI components related to likes, comment submission, and profile rendering.
 
-## Key Lessons
-
-- Distributed pipelines (Kafka → Spark → RDS) require careful observability and end-to-end logging.
-- Real-time and batch systems must be coordinated with respect to latency vs compute cost.
-- Database schema design affects both system performance and ML-based ranking outcomes.
-- Building features like likes required cross-layer updates: UI, DB, and algorithm.
 
 ## Acknowledgements
 This project was developed as the final project for **NETS 2120: Scalable and Cloud Computing** at the University of Pennsylvania.
